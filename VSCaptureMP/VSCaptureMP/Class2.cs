@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.003.
+ * This file is part of VitalSignsCaptureMP v1.004.
  * Copyright (C) 2017-18 John George K., xeonfusion@users.sourceforge.net
  * Portions of code (C) 2015 Richard L. Grier
  
@@ -2789,6 +2789,7 @@ namespace VSCaptureMP
         //-----------------------------------------------------------------------------
 
         public const int NOM_ATTR_METRIC_SPECN = 2367;
+        public const int NOM_ATTR_ID_HANDLE = 2337;
         public const int NOM_ATTR_ID_LABEL = 2340;
         public const int NOM_ATTR_ID_LABEL_STRING = 2343;
         public const int NOM_ATTR_NU_CMPD_VAL_OBS = 2379;
@@ -3114,23 +3115,40 @@ namespace VSCaptureMP
 		public SaObsValue value1;
 	};
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 6, CharSet = CharSet.Ansi)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 8, CharSet = CharSet.Ansi)]
     public class SaSpec
     {
         public ushort array_size;
         public byte sample_size;
         public byte significant_bits;
         public ushort SaFlags;
+        public ushort obpoll_handle;
     };
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 12, CharSet = CharSet.Ansi)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 24, CharSet = CharSet.Ansi)]
     public class ScaleRangeSpec16
     {
         public double lower_absolute_value;
         public double upper_absolute_value;
         public ushort lower_scaled_value;
         public ushort upper_scaled_value;
+        public ushort obpoll_handle;
+        public ushort physio_id;
     };
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 28, CharSet = CharSet.Ansi)]
+    public class SaCalibData16
+    {
+        public double lower_absolute_value;
+        public double upper_absolute_value;
+        public ushort lower_scaled_value;
+        public ushort upper_scaled_value;
+        public ushort increment;
+        public ushort cal_type;
+        public ushort obpoll_handle;
+        public ushort physio_id;
+    };
+
 
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 2, CharSet = CharSet.Ansi)]
     public class MetricStructure

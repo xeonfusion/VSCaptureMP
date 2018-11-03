@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.003.
+ * This file is part of VitalSignsCaptureMP v1.004.
  * Copyright (C) 2017-18 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -146,13 +146,14 @@ namespace VSCaptureMP
             Console.WriteLine("3. 1 minute (Averaged)");
             Console.WriteLine("4. 5 minute (Averaged)");
             Console.WriteLine("5. Single poll");
+            
             Console.WriteLine();
             Console.Write("Choose Data Transmission interval (1-5):");
 
             string sIntervalset = Console.ReadLine();
-            int[] setarray = { 1, 12, 60, 300, 0 };
+            int[] setarray = { 1000, 12000, 60000, 300000, 0}; //milliseconds
             short nIntervalset = 2;
-            int nInterval = 12;
+            int nInterval = 12000;
             if (sIntervalset != "") nIntervalset = Convert.ToInt16(sIntervalset);
             if (nIntervalset > 0 && nIntervalset < 6) nInterval = setarray[nIntervalset - 1];
 
@@ -178,10 +179,10 @@ namespace VSCaptureMP
             Console.WriteLine("4. ECG V1, ECG V2, ECG V3");
             Console.WriteLine("5. ECG V4, ECG V5, ECG V6");
             Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
-            Console.WriteLine("7. Compound ECG");
+            Console.WriteLine("7. ART IBP");
             Console.WriteLine("8. Compound ECG, PLETH, ART, CVP, CO2");
             Console.WriteLine("9. All");
-
+           
             Console.WriteLine();
             Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
             Console.Write("Choose Waveform data export priority option (0-9):");
@@ -190,9 +191,21 @@ namespace VSCaptureMP
             short nWaveformSet = 0;
             if (sWaveformSet != "") nWaveformSet = Convert.ToInt16(sWaveformSet);
 
+            Console.WriteLine();
+            Console.WriteLine("Waveform data export scale and calibrate options:");
+            Console.WriteLine("1. Export scaled values");
+            Console.WriteLine("2. Export calibrated values");
+            Console.WriteLine();
+            Console.Write("Choose Waveform data export scale option (1-2):");
+
+            string sWavescaleSet = Console.ReadLine();
+            short nWavescaleSet = 1;
+            if (sWavescaleSet != "") nWavescaleSet = Convert.ToInt16(sWavescaleSet);
+            
             // Create a new UdpClient object with default settings.
             MPudpclient _MPudpclient = MPudpclient.getInstance;
 
+            Console.WriteLine();
             Console.WriteLine("Enter the target IP address of the monitor assigned by DHCP:");
 
             string IPAddressRemote = Console.ReadLine();
@@ -206,6 +219,9 @@ namespace VSCaptureMP
             Console.WriteLine("Press Escape button to Stop");
 
             if (nCSVset > 0 && nCSVset < 4) _MPudpclient.m_csvexportset = nCSVset;
+
+            if (nWavescaleSet == 1) _MPudpclient.m_calibratewavevalues = false;
+            if (nWavescaleSet == 2) _MPudpclient.m_calibratewavevalues = true;
 
             if (IPAddressRemote != "")
             {
@@ -337,9 +353,9 @@ namespace VSCaptureMP
                     Console.Write("Choose Data Transmission interval (1-5):");
 
                     string sIntervalset = Console.ReadLine();
-                    int[] setarray = { 1, 12, 60, 300, 0 };
+                    int[] setarray = { 1000, 12000, 60000, 300000, 0, 100 }; //milliseconds
                     short nIntervalset = 2;
-                    int nInterval = 12;
+                    int nInterval = 12000;
                     if (sIntervalset != "") nIntervalset = Convert.ToInt16(sIntervalset);
                     if (nIntervalset > 0 && nIntervalset < 6) nInterval = setarray[nIntervalset - 1];
 
@@ -366,19 +382,32 @@ namespace VSCaptureMP
                     Console.WriteLine("4. ECG V1, ECG V2, ECG V3");
                     Console.WriteLine("5. ECG V4, ECG V5, ECG V6");
                     Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
-                    Console.WriteLine("7. Compound ECG");
+                    Console.WriteLine("7. ART IBP");
                     Console.WriteLine("8. Compound ECG, PLETH, ART, CVP, CO2");
                     Console.WriteLine("9. All");
 
                     Console.WriteLine();
                     Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
                     Console.Write("Choose Waveform data export priority option (0-9):");
-                
-
-                string sWaveformSet = Console.ReadLine();
+              
+                    string sWaveformSet = Console.ReadLine();
                     short nWaveformSet = 0;
                     if (sWaveformSet != "") nWaveformSet = Convert.ToInt16(sWaveformSet);
 
+                    Console.WriteLine();
+                    Console.WriteLine("Waveform data export scale and calibrate options:");
+                    Console.WriteLine("1. Export scaled values");
+                    Console.WriteLine("2. Export calibrated values");
+                    Console.WriteLine();
+                    Console.Write("Choose Waveform data export scale option (1-2):");
+
+                    string sWavescaleSet = Console.ReadLine();
+                    short nWavescaleSet = 1;
+                    if (sWavescaleSet != "") nWavescaleSet = Convert.ToInt16(sWavescaleSet);
+                    if (nWavescaleSet == 1) _serialPort.m_calibratewavevalues = false;
+                    if (nWavescaleSet == 2) _serialPort.m_calibratewavevalues = true;
+
+                    Console.WriteLine();
                     Console.WriteLine("Requesting Transmission set {0} from monitor", nIntervalset);
                     Console.WriteLine();
                     Console.WriteLine("Data will be written to CSV file MPDataExport.csv in same folder");

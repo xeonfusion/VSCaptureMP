@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.003.
+ * This file is part of VitalSignsCaptureMP v1.004.
  * Copyright (C) 2017-18 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -44,9 +44,14 @@ namespace VSCaptureMP
         public int m_headerelementcount = 0;
         public int m_csvexportset = 1;
         public List<SaSpec> m_SaSpecList = new List<SaSpec>();
+        public List<SaCalibData16> m_SaCalibDataSpecList = new List<SaCalibData16>();
+        public bool m_calibratewavevalues = false;
 
-        public ScaleRangeSpec16 m_scalerangespec = new ScaleRangeSpec16(); 
-
+        public ushort m_obpollhandle = 0;
+        public uint m_idlabelhandle = 0;
+        public DateTime m_baseDateTime = new DateTime();
+        public uint m_baseRelativeTime = 0;
+        
         public class NumericValResult
         {
             public string Timestamp;
@@ -61,10 +66,9 @@ namespace VSCaptureMP
 			public string Relativetimestamp;
 			public string PhysioID;
 			public byte[] Value;
-            public ushort SaFlags;
-            public byte sample_size;
-            public byte significant_bits;
-            public ushort array_size;
+            public ushort obpoll_handle;
+            public SaSpec saSpecData = new SaSpec();
+            public SaCalibData16 saCalibData = new SaCalibData16();
         }
 
 
@@ -214,7 +218,7 @@ namespace VSCaptureMP
                 case 7:
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x01))); //count
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x04))); //length
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
                     break;
                 case 8:
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x05))); //count
@@ -278,7 +282,8 @@ namespace VSCaptureMP
 
         public async Task SendCycledExtendedPollWaveDataRequest(int nInterval)
         {
-            int nmillisecond = nInterval * 1000;
+            int nmillisecond = nInterval;
+
             if (nmillisecond != 0)
             {
                 do
@@ -295,7 +300,8 @@ namespace VSCaptureMP
 
         public async Task SendCycledExtendedPollDataRequest(int nInterval)
         {
-            int nmillisecond = nInterval * 1000;
+            int nmillisecond = nInterval;
+
             if (nmillisecond != 0)
             { 
                 do
@@ -311,9 +317,8 @@ namespace VSCaptureMP
 
         public async Task KeepConnectionAlive(int nInterval)
         {
-            //int nmillisecond = (nInterval/2) * 1000;
             int nmillisecond = 6 * 1000;
-            if (nmillisecond != 0 && nInterval !=1)
+            if (nmillisecond != 0 && nInterval>1000)
             {
                 do
                 {
@@ -367,9 +372,11 @@ namespace VSCaptureMP
                 {
                     //Get Date and Time
                     case DataConstants.NOM_ATTR_TIME_ABS:
+                        GetAbsoluteTimeFromBCDFormat(avaattribobjects);
                         break;
                     //Get Relative Time attribute
                     case DataConstants.NOM_ATTR_TIME_REL:
+                        GetBaselineRelativeTimestamp(avaattribobjects);
                         break;
                     //Get Patient demographics
                     case DataConstants.NOM_ATTR_PT_ID:
@@ -384,6 +391,45 @@ namespace VSCaptureMP
             }
 
 
+        }
+
+        private static int BinaryCodedDecimalToInteger(int value)
+        {
+            if (value != 0xFF)
+            {
+                int lowerNibble = value & 0x0F;
+                int upperNibble = value >> 4;
+
+                int multipleOfOne = lowerNibble;
+                int multipleOfTen = upperNibble * 10;
+
+                return (multipleOfOne + multipleOfTen);
+            }
+            else return 0;
+        }
+
+        public void GetAbsoluteTimeFromBCDFormat(byte[] bcdtimebuffer)
+        {
+            int century = BinaryCodedDecimalToInteger(bcdtimebuffer[0]);
+            int year = BinaryCodedDecimalToInteger(bcdtimebuffer[1]);
+            int month = BinaryCodedDecimalToInteger(bcdtimebuffer[2]);
+            int day = BinaryCodedDecimalToInteger(bcdtimebuffer[3]);
+            int hour = BinaryCodedDecimalToInteger(bcdtimebuffer[4]);
+            int minute = BinaryCodedDecimalToInteger(bcdtimebuffer[5]);
+            int second = BinaryCodedDecimalToInteger(bcdtimebuffer[6]);
+            int fraction = BinaryCodedDecimalToInteger(bcdtimebuffer[7]);
+
+            int formattedyear = (century * 100) + year;
+
+            DateTime dateTime = new DateTime(formattedyear, month, day, hour, minute, second, fraction);
+
+            m_baseDateTime = dateTime;
+
+        }
+
+        public void GetBaselineRelativeTimestamp(byte[] timebuffer)
+        {
+            m_baseRelativeTime = correctendianuint(BitConverter.ToUInt32(timebuffer, 0));
         }
 
         public void ReadData(byte[] readbuffer)
@@ -478,7 +524,11 @@ namespace VSCaptureMP
             Array.Copy(packetbuffer, header.Length, packetdata, 0, packetdata.Length);
 
             m_strTimestamp = GetPacketTimestamp(header);
-            DateTime dtDateTime = DateTime.Now;
+            int currentRelativeTime = Int32.Parse(m_strTimestamp);
+            //DateTime dtDateTime = DateTime.Now;
+            double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime) * 125 / 1000;
+            DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
+
             string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
             Console.WriteLine("Time:{0}", strDateTime);
             Console.WriteLine("Time:{0}", m_strTimestamp);
@@ -568,6 +618,8 @@ namespace VSCaptureMP
         {
             obpollobject.obj_handle = correctendianshortus(binreader3.ReadUInt16());
 
+            m_obpollhandle = obpollobject.obj_handle;
+
             AttributeList attributeliststruct = new AttributeList();
 
             attributeliststruct.count = correctendianshortus(binreader3.ReadUInt16());
@@ -591,7 +643,11 @@ namespace VSCaptureMP
 
                 switch (avaobject.attribute_id)
                 {
+                    case DataConstants.NOM_ATTR_ID_HANDLE:
+                        //ReadIDHandle(avaattribobjects);
+                        break;
                     case DataConstants.NOM_ATTR_ID_LABEL:
+                        ReadIDLabel(avaattribobjects);
                         break;
                     case DataConstants.NOM_ATTR_NU_VAL_OBS:
                         ReadNumericObservationValue(avaattribobjects);
@@ -614,7 +670,10 @@ namespace VSCaptureMP
                         ReadSaSpecifications(avaattribobjects);
                         break;
                     case DataConstants.NOM_ATTR_SCALE_SPECN_I16:
-                        ReadSaScaleSpecifications(avaattribobjects);
+                        //ReadSaScaleSpecifications(avaattribobjects);
+                        break;
+                    case DataConstants.NOM_ATTR_SA_CALIB_I16:
+                        ReadSaCalibrationSpecifications(avaattribobjects);
                         break;
                     default:
                         // unknown attribute -> do nothing
@@ -683,6 +742,24 @@ namespace VSCaptureMP
 
         }
 
+        public void ReadIDHandle(byte[] avaattribobjects)
+        {
+            MemoryStream memstream5 = new MemoryStream(avaattribobjects);
+            BinaryReader binreader5 = new BinaryReader(memstream5);
+
+            ushort IDhandle = correctendianshortus(binreader5.ReadUInt16());
+        }
+
+        public void ReadIDLabel(byte[] avaattribobjects)
+        {
+            MemoryStream memstream5 = new MemoryStream(avaattribobjects);
+            BinaryReader binreader5 = new BinaryReader(memstream5);
+
+            uint IDlabel = correctendianuint(binreader5.ReadUInt32());
+
+            m_idlabelhandle = IDlabel;
+        }
+
         public void ReadIDLabelString(byte[] avaattribobjects)
         {
 
@@ -697,7 +774,6 @@ namespace VSCaptureMP
 
             string label = Encoding.UTF8.GetString(stringval);
             Console.WriteLine("Label String: {0}", label);
-
         }
 
         public void ReadNumericObservationValue(byte[] avaattribobjects)
@@ -728,7 +804,18 @@ namespace VSCaptureMP
 
             NumericValResult NumVal = new NumericValResult();
             NumVal.Relativetimestamp = m_strTimestamp;
-            NumVal.Timestamp = DateTime.Now.ToString();
+
+            //DateTime dtDateTime = DateTime.Now;
+            int currentRelativeTime = Int32.Parse(m_strTimestamp);
+            double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime) * 125 / 1000;
+            DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
+            //NumVal.Timestamp = dtDateTime.ToString();
+
+            //string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            string strDateTime = dtDateTime.ToString("G", DateTimeFormatInfo.InvariantInfo);
+            NumVal.Timestamp = strDateTime;
+            //NumVal.Timestamp = DateTime.Now.ToString();
+
             NumVal.PhysioID = physio_id;
             NumVal.Value = valuestr;
 
@@ -786,12 +873,20 @@ namespace VSCaptureMP
             Saspecobj.significant_bits = binreader7.ReadByte();
             Saspecobj.SaFlags = correctendianshortus(binreader7.ReadUInt16());
 
+            Saspecobj.obpoll_handle = m_obpollhandle;
+            
             //Add to a list of Sample array specification definitions if it's not already present
-            if (!m_SaSpecList.Exists(x => x.array_size == Saspecobj.array_size))
+
+            int salistindex = m_SaSpecList.FindIndex(x => x.obpoll_handle == Saspecobj.obpoll_handle);
+            if (salistindex == -1)
             {
                 m_SaSpecList.Add(Saspecobj);
             }
-
+            else
+            {
+                m_SaSpecList.RemoveAt(salistindex);
+                m_SaSpecList.Add(Saspecobj);
+            }
         }
 
         public void ReadWaveSaObservationValue(ref BinaryReader binreader7)
@@ -809,75 +904,102 @@ namespace VSCaptureMP
 			WaveValResult WaveVal = new WaveValResult();
 			WaveVal.Relativetimestamp = m_strTimestamp;
 
-            DateTime dtDateTime = DateTime.Now;
+            //DateTime dtDateTime = DateTime.Now;
+            int currentRelativeTime = Int32.Parse(m_strTimestamp);
+            double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime) * 125 / 1000;
+            DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
+
             string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
             //WaveVal.Timestamp = DateTime.Now.ToString();
+
             WaveVal.Timestamp = strDateTime;
             WaveVal.PhysioID = physio_id;
 
-			WaveVal.Value = new byte[wavevalobjectslength];
-			Array.Copy(WaveValObjects, WaveVal.Value, wavevalobjectslength);
+            WaveVal.obpoll_handle = m_obpollhandle;
+            ushort physio_id_handle = WaveSaObjectValue.physio_id;
 
-            //Find the Sample array specification definition that matches the observation sample array size
-            SaSpec saspecobj = new SaSpec();
-            if (wavevalobjectslength % 128 == 0)
+            WaveVal.saCalibData = m_SaCalibDataSpecList.Find(x => x.physio_id == physio_id_handle);
+            if (WaveVal.saCalibData == null)
             {
-                saspecobj = m_SaSpecList.Find(x => x.array_size == 128);
-                if (saspecobj == null)
+                WaveVal.saCalibData = new SaCalibData16();
+                if (physio_id_handle == 0x107)
                 {
-                    //use default values for ecg
-                    WaveVal.significant_bits = 0x0E;
-                    WaveVal.SaFlags = 0x3000;
-                    WaveVal.sample_size = 0x10;
-                    WaveVal.array_size = 0x80;
+                    //use default values for ecg II
+                    WaveVal.saCalibData.lower_absolute_value = 0;
+                    WaveVal.saCalibData.upper_absolute_value = 1;
+                    WaveVal.saCalibData.lower_scaled_value = 0x1fe7;
+                    WaveVal.saCalibData.upper_scaled_value = 0x20af;
                 }
-
-            }
-            else if (wavevalobjectslength % 64 == 0)
-            {
-                saspecobj = m_SaSpecList.Find(x => x.array_size == 64);
-                if (saspecobj == null)
+                else if (physio_id_handle == 0x102)
                 {
-                    //use default values for ecg
-                    WaveVal.significant_bits = 0x0E;
-                    WaveVal.SaFlags = 0x3000;
-                    WaveVal.sample_size = 0x10;
-                    WaveVal.array_size = 0x40;
+                    //use default values for ecg V5
+                    WaveVal.saCalibData.lower_absolute_value = 0;
+                    WaveVal.saCalibData.upper_absolute_value = 1;
+                    WaveVal.saCalibData.lower_scaled_value = 0x1fd4;
+                    WaveVal.saCalibData.upper_scaled_value = 0x209c;
                 }
-
-            }
-            else if (wavevalobjectslength % 32 == 0)
-            {
-                saspecobj = m_SaSpecList.Find(x => x.array_size == 32);
-                if (saspecobj == null)
+                else if (physio_id_handle == 0x4A10)
+                {
+                    //use default values for art ibp
+                    WaveVal.saCalibData.lower_absolute_value = 0;
+                    WaveVal.saCalibData.upper_absolute_value = 150;
+                    WaveVal.saCalibData.lower_scaled_value = 0x0320;
+                    WaveVal.saCalibData.upper_scaled_value = 0x0c80;
+                }
+                else if (physio_id_handle == 0x5000)
                 {
                     //use default values for resp
-                    WaveVal.significant_bits = 0x0C;
-                    WaveVal.SaFlags = 0x8000;
-                    WaveVal.sample_size = 0x10;
-                    WaveVal.array_size = 0x20;
+                    WaveVal.saCalibData.lower_absolute_value = 0;
+                    WaveVal.saCalibData.upper_absolute_value = 1;
+                    WaveVal.saCalibData.lower_scaled_value = 0x04ce;
+                    WaveVal.saCalibData.upper_scaled_value = 0x0b33;
                 }
-
+                else WaveVal.saCalibData = null;
             }
-            else if (wavevalobjectslength % 16 == 0)
+
+            WaveVal.Value = new byte[wavevalobjectslength];
+            Array.Copy(WaveValObjects, WaveVal.Value, wavevalobjectslength);
+
+            //Find the Sample array specification definition that matches the observation sample array size
+
+            WaveVal.saSpecData = m_SaSpecList.Find(x => x.obpoll_handle == WaveVal.obpoll_handle);
+            if (WaveVal.saSpecData == null)
             {
-                saspecobj = m_SaSpecList.Find(x => x.array_size == 16);
-                if (saspecobj == null)
+                WaveVal.saSpecData = new SaSpec();
+                if (wavevalobjectslength % 128 == 0)
+                {
+                    //use default values for ecg
+                    WaveVal.saSpecData.significant_bits = 0x0E;
+                    WaveVal.saSpecData.SaFlags = 0x3000;
+                    WaveVal.saSpecData.sample_size = 0x10;
+                    WaveVal.saSpecData.array_size = 0x80;
+                }
+                else if (wavevalobjectslength % 64 == 0)
+                {
+                    //use default values for art ibp
+                    WaveVal.saSpecData.significant_bits = 0x0E;
+                    WaveVal.saSpecData.SaFlags = 0x3000;
+                    WaveVal.saSpecData.sample_size = 0x10;
+                    WaveVal.saSpecData.array_size = 0x40;
+
+                }
+                else if (wavevalobjectslength % 32 == 0)
+                {
+                    //use default values for resp
+                    WaveVal.saSpecData.significant_bits = 0x0C;
+                    WaveVal.saSpecData.SaFlags = 0x8000;
+                    WaveVal.saSpecData.sample_size = 0x10;
+                    WaveVal.saSpecData.array_size = 0x20;
+                }
+                else if (wavevalobjectslength % 16 == 0)
                 {
                     //use default values for pleth
-                    WaveVal.significant_bits = 0x0C;
-                    WaveVal.SaFlags = 0x8000;
-                    WaveVal.sample_size = 0x10;
-                    WaveVal.array_size = 0x10;
+                    WaveVal.saSpecData.significant_bits = 0x0C;
+                    WaveVal.saSpecData.SaFlags = 0x8000;
+                    WaveVal.saSpecData.sample_size = 0x10;
+                    WaveVal.saSpecData.array_size = 0x10;
                 }
-            }
 
-            if (saspecobj != null)
-            {
-                WaveVal.significant_bits = saspecobj.significant_bits;
-                WaveVal.SaFlags = saspecobj.SaFlags;
-                WaveVal.sample_size = saspecobj.sample_size;
-                WaveVal.array_size = saspecobj.array_size;
             }
 
             m_WaveValResultList.Add(WaveVal);
@@ -917,12 +1039,46 @@ namespace VSCaptureMP
 
             ScaleRangeSpec16 ScaleSpec = new ScaleRangeSpec16();
 
-            ScaleSpec.lower_absolute_value = FloattypeToValue( correctendianuint(binreader9.ReadUInt32()) );
-            ScaleSpec.upper_absolute_value = FloattypeToValue( correctendianuint(binreader9.ReadUInt32()) );
+            ScaleSpec.lower_absolute_value = FloattypeToValue(correctendianuint(binreader9.ReadUInt32()));
+            ScaleSpec.upper_absolute_value = FloattypeToValue(correctendianuint(binreader9.ReadUInt32()));
             ScaleSpec.lower_scaled_value = correctendianshortus(binreader9.ReadUInt16());
             ScaleSpec.upper_scaled_value = correctendianshortus(binreader9.ReadUInt16());
 
-            m_scalerangespec = ScaleSpec;
+            ScaleSpec.obpoll_handle = m_obpollhandle;
+            ScaleSpec.physio_id = Get16bitLSBfromUInt(m_idlabelhandle);
+        }
+
+        public void ReadSaCalibrationSpecifications(byte[] avaattribobjects)
+        {
+            MemoryStream memstream10 = new MemoryStream(avaattribobjects);
+            BinaryReader binreader10 = new BinaryReader(memstream10);
+
+            SaCalibData16 SaCalibData = new SaCalibData16();
+
+            SaCalibData.lower_absolute_value = FloattypeToValue(correctendianuint(binreader10.ReadUInt32()));
+            SaCalibData.upper_absolute_value = FloattypeToValue(correctendianuint(binreader10.ReadUInt32()));
+            SaCalibData.lower_scaled_value = correctendianshortus(binreader10.ReadUInt16());
+            SaCalibData.upper_scaled_value = correctendianshortus(binreader10.ReadUInt16());
+            SaCalibData.increment = correctendianshortus(binreader10.ReadUInt16());
+            SaCalibData.cal_type = correctendianshortus(binreader10.ReadUInt16());
+
+            SaCalibData.obpoll_handle = m_obpollhandle;
+
+            //Get 16 bit physiological id from 32 bit wave id label
+            SaCalibData.physio_id = Get16bitLSBfromUInt(m_idlabelhandle);
+
+            //Add to a list of Sample array calibration specification definitions if it's not already present
+            int salistindex = m_SaCalibDataSpecList.FindIndex(x => x.physio_id == SaCalibData.physio_id);
+
+            if (salistindex == -1)
+            {
+                m_SaCalibDataSpecList.Add(SaCalibData);
+            }
+            else
+            {
+                m_SaCalibDataSpecList.RemoveAt(salistindex);
+                m_SaCalibDataSpecList.Add(SaCalibData);
+            }
         }
 
         public static double FloattypeToValue(uint fvalue)
@@ -944,7 +1100,14 @@ namespace VSCaptureMP
             }
             else return (double)fvalue;
         }
-        
+
+        public static ushort Get16bitLSBfromUInt(uint sourcevalue)
+        {
+            uint lsb = (sourcevalue & 0xFFFF);
+
+            return (ushort)lsb;
+        }
+
         public static int correctendianshort(ushort sValue)
         {
             byte [] bArray = BitConverter.GetBytes(sValue);
@@ -1201,12 +1364,12 @@ namespace VSCaptureMP
                         int msbval;
                         //mask depends on no. of significant bits
                         //int mask = 0x3FFF; //mask for 14 bits
-                        int mask = CreateMask(WavValResult.significant_bits);
+                        int mask = CreateMask(WavValResult.saSpecData.significant_bits);
 
                         //int shift = (m_sample_size-8);
                         int msbshift = (msb << 8);
 
-                        if (WavValResult.SaFlags < 0x4000)
+                        if (WavValResult.saSpecData.SaFlags < 0x4000)
                         {
                             msbval = (msbshift & mask);
                             msbval = (msbval >> 8);
@@ -1218,14 +1381,19 @@ namespace VSCaptureMP
                         if (BitConverter.IsLittleEndian) Array.Reverse(data);
 
                         double Waveval = BitConverter.ToInt16(data, 0);
-                        //Waveval = ScaleRangeSaValue(Waveval);
+
+                        if (WavValResult.saSpecData.SaFlags != 0x2000 && m_calibratewavevalues == true)
+                        {
+                            Waveval = CalibrateSaValue(Waveval, WavValResult.saCalibData);
+                        }
 
                         index = index + 1;
 
-                        //if (CheckPhysiologicalRange(Waveval))
                         {
                             m_strbuildwavevalues.Append(WavValResult.Timestamp);
                             m_strbuildwavevalues.Append(',');
+                            //m_strbuildwavevalues.Append(WavValResult.Relativetimestamp);
+                            //m_strbuildwavevalues.Append(',');
                             m_strbuildwavevalues.Append(Waveval.ToString());
                             m_strbuildwavevalues.Append(',');
                             m_strbuildwavevalues.AppendLine();
@@ -1252,46 +1420,41 @@ namespace VSCaptureMP
             return mask;
         }
 
-        public bool CheckPhysiologicalRange(double Waveval)
+        public double CalibrateSaValue(double Waveval, SaCalibData16 sacalibdata)
         {
-            if (!double.IsNaN(m_scalerangespec.lower_absolute_value) && !double.IsNaN(m_scalerangespec.upper_absolute_value))
+            if (!double.IsNaN(Waveval))
             {
-                if (Waveval >= m_scalerangespec.lower_scaled_value && Waveval <= m_scalerangespec.upper_scaled_value)
-                    return true;
-                else return false;
-            }
-            else return false;
-        }
-
-        public double ScaleRangeSaValue(double Waveval)
-        {
-
-            if (!double.IsNaN(m_scalerangespec.lower_absolute_value) && !double.IsNaN(m_scalerangespec.upper_absolute_value))
-            {
-                double prop = 0;
-                double value = 0;
-                double Wavevalue = Waveval;
-
-                if (m_scalerangespec.upper_scaled_value != m_scalerangespec.lower_scaled_value)
+                if (sacalibdata != null)
                 {
-                    prop = 1.0 * (Waveval - m_scalerangespec.lower_scaled_value) / (m_scalerangespec.upper_scaled_value - m_scalerangespec.lower_scaled_value);
-                }
-                if(m_scalerangespec.upper_absolute_value != m_scalerangespec.lower_absolute_value)
-                {
-                    value = m_scalerangespec.lower_absolute_value + prop * (m_scalerangespec.upper_absolute_value - m_scalerangespec.lower_absolute_value);
-                    
-                }
-                if (value != 0)
-                {
+                    double prop = 0;
+                    double value = 0;
+                    double Wavevalue = Waveval;
+
+                    //Check if value is out of range
+                    if (Waveval > sacalibdata.upper_scaled_value) Waveval = sacalibdata.upper_scaled_value;
+                    if (Waveval < sacalibdata.lower_scaled_value) Waveval = sacalibdata.lower_scaled_value;
+
+                    //Get proportion from scaled values
+                    if (sacalibdata.upper_scaled_value != sacalibdata.lower_scaled_value)
+                    {
+                        prop = (Waveval - sacalibdata.lower_scaled_value) / (sacalibdata.upper_scaled_value - sacalibdata.lower_scaled_value);
+                    }
+                    if (sacalibdata.upper_absolute_value != sacalibdata.lower_absolute_value)
+                    {
+                        value = sacalibdata.lower_absolute_value + (prop * (sacalibdata.upper_absolute_value - sacalibdata.lower_absolute_value));
+                        value = Math.Round(value, 2);
+                    }
+
                     Wavevalue = value;
+                    return Wavevalue;
                 }
+                else return Waveval;
 
-                return Wavevalue;
             }
-            else return Waveval; 
+            else return Waveval;
         }
-        
-		public void ExportNumValListToCSVFile(string _FileName, StringBuilder strbuildNumVal)
+
+        public void ExportNumValListToCSVFile(string _FileName, StringBuilder strbuildNumVal)
         {
             try
             {
