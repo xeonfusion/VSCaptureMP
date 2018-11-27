@@ -844,7 +844,7 @@ namespace VSCaptureMP
             Array.Copy(packetbuffer, header.Length, packetdata, 0, packetdata.Length);
 
             m_strTimestamp = GetPacketTimestamp(header);
-            int currentRelativeTime = Int32.Parse(m_strTimestamp);
+            uint currentRelativeTime = UInt32.Parse(m_strTimestamp);
             //DateTime dtDateTime = DateTime.Now;
             double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime)*125/1000;
             DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
@@ -1126,7 +1126,7 @@ namespace VSCaptureMP
             NumericValResult NumVal = new NumericValResult();
             NumVal.Relativetimestamp = m_strTimestamp;
 
-            int currentRelativeTime = Int32.Parse(m_strTimestamp);
+            uint currentRelativeTime = UInt32.Parse(m_strTimestamp);
             double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime) * 125 / 1000;
             DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
             //NumVal.Timestamp = dtDateTime.ToString();
