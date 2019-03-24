@@ -1,6 +1,6 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.004.
- * Copyright (C) 2017-18 John George K., xeonfusion@users.sourceforge.net
+ * This file is part of VitalSignsCaptureMP v1.005.
+ * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -25,6 +25,9 @@ using System.Net;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Runtime.Serialization.Json;
+using System.Net;
+
 
 namespace VSCaptureMP
 {
@@ -51,13 +54,17 @@ namespace VSCaptureMP
         public uint m_idlabelhandle = 0;
         public DateTime m_baseDateTime = new DateTime();
         public uint m_baseRelativeTime = 0;
-        
+        public string m_DeviceID;
+        public string m_jsonposturl;
+
+
         public class NumericValResult
         {
             public string Timestamp;
             public string Relativetimestamp;
             public string PhysioID;
             public string Value;
+            public string DeviceID;
         }
 
 		public class WaveValResult
@@ -66,6 +73,7 @@ namespace VSCaptureMP
 			public string Relativetimestamp;
 			public string PhysioID;
 			public byte[] Value;
+            public string DeviceID;
             public ushort obpoll_handle;
             public SaSpec saSpecData = new SaSpec();
             public SaCalibData16 saCalibData = new SaCalibData16();
@@ -174,17 +182,13 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_III")))));
                     break;
                 case 2:
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x09))); //count
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x24))); //length
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x05))); //count
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x14))); //length
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_II")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_V5")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_RESP")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART_ABP")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PULS_OXIM_PLETH")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_AWAY_CO2")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_AWAY")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_FLOW_AWAY")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_RESP")))));
                     break;
                 case 3:
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x03))); //count
@@ -216,8 +220,9 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_EEG_NAMES_EEG_CHAN4_LBL")))));
                     break;
                 case 7:
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x01))); //count
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x04))); //length
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x02))); //count
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x08))); //length
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART_ABP")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
                     break;
                 case 8:
@@ -225,7 +230,7 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x14))); //length
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PULS_OXIM_PLETH")))));
-                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART_ABP")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_AWAY_CO2")))));
                     break;
@@ -579,6 +584,7 @@ namespace VSCaptureMP
                     }
                 }
 
+                ExportNumValListToJSON("Numeric");
                 ExportDataToCSV();
 				ExportWaveToCSV();
             }
@@ -818,7 +824,7 @@ namespace VSCaptureMP
 
             NumVal.PhysioID = physio_id;
             NumVal.Value = valuestr;
-
+            NumVal.DeviceID = m_DeviceID;
 
             m_NumericValList.Add(NumVal);
             m_NumValHeaders.Add(NumVal.PhysioID);
@@ -914,6 +920,7 @@ namespace VSCaptureMP
 
             WaveVal.Timestamp = strDateTime;
             WaveVal.PhysioID = physio_id;
+            WaveVal.DeviceID = m_DeviceID;
 
             WaveVal.obpoll_handle = m_obpollhandle;
             ushort physio_id_handle = WaveSaObjectValue.physio_id;
@@ -1171,6 +1178,7 @@ namespace VSCaptureMP
                 m_strbuildheaders.Append("Time");
                 m_strbuildheaders.Append(',');
                 m_strbuildheaders.Append("RelativeTime");
+
                 m_strbuildheaders.Append(',');
 
 
@@ -1257,12 +1265,12 @@ namespace VSCaptureMP
                 WriteNumericHeadersListConsolidatedCSV();
                 string pathcsv = Path.Combine(Directory.GetCurrentDirectory(), "MPDataExport.csv");
 
-                int firstelementreltimestamp = Convert.ToInt32(m_NumericValList.ElementAt(0).Relativetimestamp);
+                uint firstelementreltimestamp = Convert.ToUInt32(m_NumericValList.ElementAt(0).Relativetimestamp);
                 int listcount = m_NumericValList.Count;
 
                 for (int i = m_elementcount; i < listcount; i++)
                 {
-                    int elementreltime = Convert.ToInt32(m_NumericValList.ElementAt(i).Relativetimestamp);
+                    uint elementreltime = Convert.ToUInt32(m_NumericValList.ElementAt(i).Relativetimestamp);
                     if (elementreltime == firstelementreltimestamp)
                     {
                         m_strbuildvalues.Append(m_NumericValList.ElementAt(i).Value);
@@ -1300,12 +1308,12 @@ namespace VSCaptureMP
             {
                 string pathcsv = Path.Combine(Directory.GetCurrentDirectory(), "MPDataExport.csv");
 
-                int firstelementreltimestamp = Convert.ToInt32(m_NumericValList.ElementAt(0).Relativetimestamp);
+                uint firstelementreltimestamp = Convert.ToUInt32(m_NumericValList.ElementAt(0).Relativetimestamp);
                 int listcount = m_NumValHeaders.Count;
 
                 for(int i= m_headerelementcount;i<listcount;i++)
                 {
-                    int elementreltime = Convert.ToInt32(m_NumericValList.ElementAt(i).Relativetimestamp);
+                    uint elementreltime = Convert.ToUInt32(m_NumericValList.ElementAt(i).Relativetimestamp);
                     if (elementreltime == firstelementreltimestamp)
                     {
                         m_strbuildheaders.Append(m_NumValHeaders.ElementAt(i));
@@ -1392,8 +1400,8 @@ namespace VSCaptureMP
                         {
                             m_strbuildwavevalues.Append(WavValResult.Timestamp);
                             m_strbuildwavevalues.Append(',');
-                            //m_strbuildwavevalues.Append(WavValResult.Relativetimestamp);
-                            //m_strbuildwavevalues.Append(',');
+                            m_strbuildwavevalues.Append(WavValResult.Relativetimestamp);
+                            m_strbuildwavevalues.Append(',');
                             m_strbuildwavevalues.Append(Waveval.ToString());
                             m_strbuildwavevalues.Append(',');
                             m_strbuildwavevalues.AppendLine();
@@ -1513,7 +1521,70 @@ namespace VSCaptureMP
             return false;
         }
 
-        
+        public void ExportNumValListToJSON(string datatype)
+        {
+            //string filename = String.Format("MP{0}DataExport.json", datatype);
+
+            //string pathjson = Path.Combine(Directory.GetCurrentDirectory(), filename);
+
+            DataContractJsonSerializer jsonSerializer = new DataContractJsonSerializer(typeof(List<NumericValResult>));
+
+            MemoryStream memstream = new MemoryStream();
+            jsonSerializer.WriteObject(memstream, m_NumericValList);
+
+            string serializedJSON = Encoding.UTF8.GetString(memstream.ToArray());
+            memstream.Close();
+
+            try
+            {
+                // Open file for reading. 
+                //StreamWriter wrStream = new StreamWriter(pathjson, true, Encoding.UTF8);
+
+                //wrStream.Write(serializedJSON);
+
+                //wrStream.Close();
+
+                PostJSONDataToServer(serializedJSON);
+
+            }
+
+            catch (Exception _Exception)
+            {
+                // Error. 
+                Console.WriteLine("Exception caught in process: {0}", _Exception.ToString());
+            }
+        }
+
+        public void PostJSONDataToServer(string postData)
+        {
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(m_jsonposturl);
+            request.Method = "POST";
+
+            byte[] byteArray = Encoding.UTF8.GetBytes(postData);
+            request.ContentType = "application/json";
+            request.ContentLength = byteArray.Length;
+
+            using (Stream dataStream = request.GetRequestStream())
+            {
+                dataStream.Write(byteArray, 0, byteArray.Length);
+                dataStream.Close();
+            }
+
+            // Get the response.  
+            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+            Console.WriteLine(response.StatusDescription);
+
+            using (Stream dataStream = response.GetResponseStream())
+            {
+                StreamReader reader = new StreamReader(dataStream);
+                string responseFromServer = reader.ReadToEnd();
+                Console.WriteLine(responseFromServer);
+                reader.Close();
+                dataStream.Close();
+            }
+
+            response.Close();
+        }
     }
 
 

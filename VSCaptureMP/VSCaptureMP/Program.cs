@@ -1,6 +1,6 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.004.
- * Copyright (C) 2017-18 John George K., xeonfusion@users.sourceforge.net
+ * This file is part of VitalSignsCaptureMP v1.005.
+ * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -32,27 +32,58 @@ namespace VSCaptureMP
     class Program
     {
         static EventHandler dataEvent;
+        public static string DeviceID;
+        public static string JSONPostUrl;
 
         static void Main(string[] args)
         {
-            Console.WriteLine("VitalSignsCaptureMP MIB (C)2017-18 John George K.");
-
+            Console.WriteLine("VitalSignsCaptureMP MIB (C)2017-19 John George K.");
+            Console.WriteLine("For command line usage: -help");
             Console.WriteLine();
-            Console.WriteLine("1. Connect via MIB RS232 port");
-            Console.WriteLine("2. Connect via LAN port");
-            Console.WriteLine();
-            Console.Write("Choose connection mode (1-2):");
 
-            string sConnectset = Console.ReadLine();
+            var parser = new CommandLineParser();
+            parser.Parse(args);
+
+            if (parser.Arguments.ContainsKey("help"))
+            {
+                Console.WriteLine("VSCaptureMP.exe -mode[number] -port [portname] -interval [number]");
+                Console.WriteLine(" -waveset[number] -export[number] -devid[name] -url [name] -scale[number]");
+                Console.WriteLine("-mode <Set connection mode MIB or LAN>");
+                Console.WriteLine("-port <Set IP address or serial port>");
+                Console.WriteLine("-interval <Set numeric transmission interval option>");
+                Console.WriteLine("-waveset <Set waveform request priority option>");
+                Console.WriteLine("-export <Set data export CSV or JSON option>");
+                Console.WriteLine("-devid <Set device ID for JSON export>");
+                Console.WriteLine("-url <Set JSON export url>");
+                Console.WriteLine("-scale <Set waveform data scale or calibrate option>");
+
+                Console.WriteLine();
+                return;
+            }
+
+            string sConnectset;
+            if (parser.Arguments.ContainsKey("mode"))
+            {
+                sConnectset = parser.Arguments["mode"][0];
+            }
+            else
+            {
+                Console.WriteLine();
+                Console.WriteLine("1. Connect via MIB RS232 port");
+                Console.WriteLine("2. Connect via LAN port");
+                Console.WriteLine();
+                Console.Write("Choose connection mode (1-2):");
+
+                sConnectset = Console.ReadLine();
+
+            }
+
             int nConnectset = 1;
             if (sConnectset != "") nConnectset = Convert.ToInt32(sConnectset);
 
-            if (nConnectset == 1) ConnectviaMIB();
-            else if (nConnectset == 2) ConnectviaLAN();
+            if (nConnectset == 1) ConnectviaMIB(args);
+            else if (nConnectset == 2) ConnectviaLAN(args);
             
-            //ConnectviaLAN();
-            //ConnectviaMIB();
-
             ConsoleKeyInfo cki;
 
             do
@@ -134,81 +165,169 @@ namespace VSCaptureMP
 
         }
 
-        public static void ConnectviaLAN()
+        public static void ConnectviaLAN(string[] args)
         {
-            Console.WriteLine("You may connect an Ethernet cable to the Philips Intellivue monitor LAN port");
-            Console.WriteLine("Note the IP address from the Network Status menu in the monitor");
+            var parser = new CommandLineParser();
+            parser.Parse(args);
 
-            Console.WriteLine();
-            Console.WriteLine("Numeric Data Transmission sets:");
-            Console.WriteLine("1. 1 second (Real time)");
-            Console.WriteLine("2. 12 second (Averaged)");
-            Console.WriteLine("3. 1 minute (Averaged)");
-            Console.WriteLine("4. 5 minute (Averaged)");
-            Console.WriteLine("5. Single poll");
-            
-            Console.WriteLine();
-            Console.Write("Choose Data Transmission interval (1-5):");
+            string sIntervalset;
+            if (parser.Arguments.ContainsKey("interval"))
+            {
+                sIntervalset = parser.Arguments["interval"][0];
+            }
+            else
+            {
+                Console.WriteLine("You may connect an Ethernet cable to the Philips Intellivue monitor LAN port");
+                Console.WriteLine("Note the IP address from the Network Status menu in the monitor");
 
-            string sIntervalset = Console.ReadLine();
+                Console.WriteLine();
+                Console.WriteLine("Numeric Data Transmission sets:");
+                Console.WriteLine("1. 1 second (Real time)");
+                Console.WriteLine("2. 12 second (Averaged)");
+                Console.WriteLine("3. 1 minute (Averaged)");
+                Console.WriteLine("4. 5 minute (Averaged)");
+                Console.WriteLine("5. Single poll");
+
+                Console.WriteLine();
+                Console.Write("Choose Data Transmission interval (1-5):");
+
+                sIntervalset = Console.ReadLine();
+
+            }
+
             int[] setarray = { 1000, 12000, 60000, 300000, 0}; //milliseconds
             short nIntervalset = 2;
             int nInterval = 12000;
             if (sIntervalset != "") nIntervalset = Convert.ToInt16(sIntervalset);
             if (nIntervalset > 0 && nIntervalset < 6) nInterval = setarray[nIntervalset - 1];
 
-            Console.WriteLine();
+            string sDataExportset;
+            if (parser.Arguments.ContainsKey("export"))
+            {
+                sDataExportset = parser.Arguments["export"][0];
+            }
+            else
+            {
+                Console.WriteLine();
+                Console.WriteLine("Data export options:");
+                Console.WriteLine("1. Export as CSV files");
+                Console.WriteLine("2. Export as CSV files and JSON to URL");
+                Console.WriteLine();
+                Console.Write("Choose data export option (1-2):");
+
+                sDataExportset = Console.ReadLine();
+
+            }
+
+            int nDataExportset = 1;
+            if (sDataExportset != "") nDataExportset = Convert.ToInt32(sDataExportset);
+
+            if(nDataExportset ==2)
+            {
+                if (parser.Arguments.ContainsKey("devid"))
+                {
+                    DeviceID = parser.Arguments["devid"][0];
+                }
+                else
+                {
+                    Console.Write("Enter Device ID/Name:");
+                    DeviceID = Console.ReadLine();
+
+                }
+
+                if (parser.Arguments.ContainsKey("url"))
+                {
+                    JSONPostUrl = parser.Arguments["url"][0];
+                }
+                else
+                {
+                    Console.Write("Enter JSON Data Export URL(http://):");
+                    JSONPostUrl = Console.ReadLine();
+
+                }
+
+            }
+
+            /*Console.WriteLine();
             Console.WriteLine("CSV Data Export Options:");
             Console.WriteLine("1. Single value list");
             Console.WriteLine("2. Data packet list");
             Console.WriteLine("3. Consolidated data list");
             Console.WriteLine();
-            Console.Write("Choose CSV export option (1-3):");
+            Console.Write("Choose CSV export option (1-3):");*/
 
-            string sCSVset = Console.ReadLine();
+            //string sCSVset = Console.ReadLine();
             int nCSVset = 3;
-            if (sCSVset != "") nCSVset = Convert.ToInt32(sCSVset);
+            //if (sCSVset != "") nCSVset = Convert.ToInt32(sCSVset);
 
-            Console.WriteLine();
-            Console.WriteLine("Waveform data export options:");
-            Console.WriteLine("0. None");
-            //Console.WriteLine("1. All");
-            Console.WriteLine("1. ECG I, II, III");
-            Console.WriteLine("2. ECG II, ECG V5, RESP, PLETH, ART IBP, CVP, CO2, AWP, AWF");
-            Console.WriteLine("3. ECG AVR, ECG AVL, ECG AVF");
-            Console.WriteLine("4. ECG V1, ECG V2, ECG V3");
-            Console.WriteLine("5. ECG V4, ECG V5, ECG V6");
-            Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
-            Console.WriteLine("7. ART IBP");
-            Console.WriteLine("8. Compound ECG, PLETH, ART, CVP, CO2");
-            Console.WriteLine("9. All");
-           
-            Console.WriteLine();
-            Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
-            Console.Write("Choose Waveform data export priority option (0-9):");
+            string sWaveformSet;
+            if (parser.Arguments.ContainsKey("waveset"))
+            {
+                sWaveformSet = parser.Arguments["waveset"][0];
+            }
+            else
+            {
+                Console.WriteLine();
+                Console.WriteLine("Waveform data export options:");
+                Console.WriteLine("0. None");
+                Console.WriteLine("1. ECG I, II, III");
+                Console.WriteLine("2. ECG II, ABP, PLETH, CVP, RESP");
+                Console.WriteLine("3. ECG AVR, ECG AVL, ECG AVF");
+                Console.WriteLine("4. ECG V1, ECG V2, ECG V3");
+                Console.WriteLine("5. ECG V4, ECG V5, ECG V6");
+                Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
+                Console.WriteLine("7. ABP, ART IBP");
+                Console.WriteLine("8. Compound ECG, PLETH, ABP, CVP, CO2");
+                Console.WriteLine("9. All");
 
-            string sWaveformSet = Console.ReadLine();
+                Console.WriteLine();
+                Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
+                Console.Write("Choose Waveform data export priority option (0-9):");
+
+                sWaveformSet = Console.ReadLine();
+
+            }
+
             short nWaveformSet = 0;
             if (sWaveformSet != "") nWaveformSet = Convert.ToInt16(sWaveformSet);
 
-            Console.WriteLine();
-            Console.WriteLine("Waveform data export scale and calibrate options:");
-            Console.WriteLine("1. Export scaled values");
-            Console.WriteLine("2. Export calibrated values");
-            Console.WriteLine();
-            Console.Write("Choose Waveform data export scale option (1-2):");
+            string sWavescaleSet;
+            if (parser.Arguments.ContainsKey("scale"))
+            {
+                sWavescaleSet = parser.Arguments["scale"][0];
+            }
+            else
+            {
+                Console.WriteLine();
+                Console.WriteLine("Waveform data export scale and calibrate options:");
+                Console.WriteLine("1. Export scaled values");
+                Console.WriteLine("2. Export calibrated values");
+                Console.WriteLine();
+                Console.Write("Choose Waveform data export scale option (1-2):");
 
-            string sWavescaleSet = Console.ReadLine();
+                sWavescaleSet = Console.ReadLine();
+
+            }
+
             short nWavescaleSet = 1;
             if (sWavescaleSet != "") nWavescaleSet = Convert.ToInt16(sWavescaleSet);
             
             // Create a new UdpClient object with default settings.
             MPudpclient _MPudpclient = MPudpclient.getInstance;
 
-            Console.WriteLine();
-            Console.WriteLine("Enter the target IP address of the monitor assigned by DHCP:");
+            string IPAddressRemote;
+            if (parser.Arguments.ContainsKey("port"))
+            {
+                IPAddressRemote = parser.Arguments["port"][0];
+            }
+            else
+            {
+                Console.WriteLine();
+                Console.WriteLine("Enter the target IP address of the monitor assigned by DHCP:");
 
-            string IPAddressRemote = Console.ReadLine();
+                IPAddressRemote = Console.ReadLine();
+
+            }
 
             Console.WriteLine("Connecting to {0}...", IPAddressRemote);
             Console.WriteLine();
@@ -228,6 +347,8 @@ namespace VSCaptureMP
                 //Default Philips monitor port is 24105
                 _MPudpclient.m_remoteIPtarget = new IPEndPoint(IPAddress.Parse(IPAddressRemote), 24105);
 
+                _MPudpclient.m_DeviceID = DeviceID;
+                _MPudpclient.m_jsonposturl = JSONPostUrl;
 
                 try
                 {
@@ -256,7 +377,6 @@ namespace VSCaptureMP
 
                     //Send PollDataRequest message
                     //_MPudpclient.SendPollDataRequest();
-                    // _MPudpclient.SendExtendedPollDataRequest();
 
                     //Send Extended PollData Requests cycled every second
                     Task.Run(() => _MPudpclient.SendCycledExtendedPollDataRequest(nInterval));
@@ -266,7 +386,6 @@ namespace VSCaptureMP
                     if (nWaveformSet != 0)
                     {
                         _MPudpclient.GetRTSAPriorityListRequest();
-                        //_MPudpclient.SetRTSAPriorityListRequest();
                         if (nWaveformSet != 9)
                         {
                             _MPudpclient.SetRTSAPriorityList(nWaveformSet);
@@ -298,20 +417,33 @@ namespace VSCaptureMP
 
 
         }
-        public static void ConnectviaMIB()
+        public static void ConnectviaMIB(string[] args)
         {
             // Create a new SerialPort object with default settings.
             MPSerialPort _serialPort = MPSerialPort.getInstance;
 
-            Console.WriteLine("Select the Port to which Intellivue Monitor is to be connected, Available Ports:");
-            foreach (string s in SerialPort.GetPortNames())
+            var parser = new CommandLineParser();
+            parser.Parse(args);
+
+            string portName;
+            if (parser.Arguments.ContainsKey("port"))
             {
-                Console.WriteLine(" {0}", s);
+                portName = parser.Arguments["port"][0];
+            }
+            else
+            {
+                Console.WriteLine("Select the Port to which Intellivue Monitor is to be connected, Available Ports:");
+                foreach (string s in SerialPort.GetPortNames())
+                {
+                    Console.WriteLine(" {0}", s);
+                }
+
+
+                Console.Write("COM port({0}): ", _serialPort.PortName.ToString());
+                portName = Console.ReadLine();
+
             }
 
-
-            Console.Write("COM port({0}): ", _serialPort.PortName.ToString());
-            string portName = Console.ReadLine();
 
             if (portName != "")
             {
@@ -324,9 +456,6 @@ namespace VSCaptureMP
             {
                 _serialPort.Open();
 
-                //EventHandler dataEvent = new EventHandler((object sender, EventArgs e)=>ReadData(sender));
-
-
                 if (_serialPort.OSIsUnix())
                 {
                     dataEvent += new EventHandler((object sender, EventArgs e) => ReadData(sender));
@@ -337,11 +466,23 @@ namespace VSCaptureMP
                     _serialPort.DataReceived += new SerialDataReceivedEventHandler(p_DataReceived);
                 }
 
-                Console.WriteLine("You may now connect the serial cable to the Intellivue Monitor MIB port");
-                Console.WriteLine("Press any key to continue..");
+                if (!parser.Arguments.ContainsKey("port"))
+                {
+                    Console.WriteLine("You may now connect the serial cable to the Intellivue Monitor MIB port");
+                    Console.WriteLine("Press any key to continue..");
 
-                Console.ReadKey(true);
+                    Console.ReadKey(true);
 
+                }
+
+
+                string sIntervalset;
+                if (parser.Arguments.ContainsKey("interval"))
+                {
+                    sIntervalset = parser.Arguments["interval"][0];
+                }
+                else
+                {
                     Console.WriteLine();
                     Console.WriteLine("Numeric Data Transmission sets:");
                     Console.WriteLine("1. 1 second (Real time)");
@@ -352,48 +493,115 @@ namespace VSCaptureMP
                     Console.WriteLine();
                     Console.Write("Choose Data Transmission interval (1-5):");
 
-                    string sIntervalset = Console.ReadLine();
-                    int[] setarray = { 1000, 12000, 60000, 300000, 0, 100 }; //milliseconds
-                    short nIntervalset = 2;
-                    int nInterval = 12000;
-                    if (sIntervalset != "") nIntervalset = Convert.ToInt16(sIntervalset);
-                    if (nIntervalset > 0 && nIntervalset < 6) nInterval = setarray[nIntervalset - 1];
+                    sIntervalset = Console.ReadLine();
 
+                }
+
+                int[] setarray = { 1000, 12000, 60000, 300000, 0, 100 }; //milliseconds
+                short nIntervalset = 2;
+                int nInterval = 12000;
+                if (sIntervalset != "") nIntervalset = Convert.ToInt16(sIntervalset);
+                if (nIntervalset > 0 && nIntervalset < 6) nInterval = setarray[nIntervalset - 1];
+
+                string sDataExportset;
+                if (parser.Arguments.ContainsKey("export"))
+                {
+                    sDataExportset = parser.Arguments["export"][0];
+                }
+                else
+                {
                     Console.WriteLine();
-                    Console.WriteLine("CSV Data Export Options:");
-                    Console.WriteLine("1. Single value list");
-                    Console.WriteLine("2. Data packet list");
-                    Console.WriteLine("3. Consolidated data list");
+                    Console.WriteLine("Data export options:");
+                    Console.WriteLine("1. Export as CSV files");
+                    Console.WriteLine("2. Export as CSV files and JSON to URL");
                     Console.WriteLine();
-                    Console.Write("Choose CSV export option (1-3):");
+                    Console.Write("Choose data export option (1-2):");
 
-                    string sCSVset = Console.ReadLine();
-                    int nCSVset = 3;
-                    if (sCSVset != "") nCSVset = Convert.ToInt32(sCSVset);
+                    sDataExportset = Console.ReadLine();
 
+                }
+
+                int nDataExportset = 1;
+                if (sDataExportset != "") nDataExportset = Convert.ToInt32(sDataExportset);
+
+                if (nDataExportset == 2)
+                {
+                    if (parser.Arguments.ContainsKey("devid"))
+                    {
+                        DeviceID = parser.Arguments["devid"][0];
+                    }
+                    else
+                    {
+                        Console.Write("Enter Device ID/Name:");
+                        DeviceID = Console.ReadLine();
+
+                    }
+
+                    if (parser.Arguments.ContainsKey("url"))
+                    {
+                        JSONPostUrl = parser.Arguments["url"][0];
+                    }
+                    else
+                    {
+                        Console.Write("Enter JSON Data Export URL(http://):");
+                        JSONPostUrl = Console.ReadLine();
+
+                    }
+
+                }
+                _serialPort.m_DeviceID = DeviceID;
+                _serialPort.m_jsonposturl = JSONPostUrl;
+
+                /*Console.WriteLine();
+                Console.WriteLine("CSV Data Export Options:");
+                Console.WriteLine("1. Single value list");
+                Console.WriteLine("2. Data packet list");
+                Console.WriteLine("3. Consolidated data list");
+                Console.WriteLine();
+                Console.Write("Choose CSV export option (1-3):");*/
+
+                //string sCSVset = Console.ReadLine();
+                int nCSVset = 3;
+                //if (sCSVset != "") nCSVset = Convert.ToInt32(sCSVset);
+
+                string sWaveformSet;
+                if (parser.Arguments.ContainsKey("waveset"))
+                {
+                    sWaveformSet = parser.Arguments["waveset"][0];
+                }
+                else
+                {
                     Console.WriteLine();
                     Console.WriteLine("Waveform data export priority options:");
                     Console.WriteLine("0. None");
-                    //Selecting all waves can lead to data loss due to bandwidth issues
-                    //Console.WriteLine("1. All");
                     Console.WriteLine("1. ECG I, II, III");
-                    Console.WriteLine("2. ECG II, ECG V5, RESP, PLETH, ART IBP, CVP, CO2, AWP, AWF");
+                    Console.WriteLine("2. ECG II, ABP, PLETH, CVP, RESP");
                     Console.WriteLine("3. ECG AVR, ECG AVL, ECG AVF");
                     Console.WriteLine("4. ECG V1, ECG V2, ECG V3");
                     Console.WriteLine("5. ECG V4, ECG V5, ECG V6");
                     Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
-                    Console.WriteLine("7. ART IBP");
-                    Console.WriteLine("8. Compound ECG, PLETH, ART, CVP, CO2");
+                    Console.WriteLine("7. ABP, ART IBP");
+                    Console.WriteLine("8. Compound ECG, PLETH, ABP, CVP, CO2");
                     Console.WriteLine("9. All");
 
                     Console.WriteLine();
                     Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
                     Console.Write("Choose Waveform data export priority option (0-9):");
-              
-                    string sWaveformSet = Console.ReadLine();
-                    short nWaveformSet = 0;
-                    if (sWaveformSet != "") nWaveformSet = Convert.ToInt16(sWaveformSet);
 
+                   sWaveformSet = Console.ReadLine();
+
+                }
+
+                short nWaveformSet = 0;
+                if (sWaveformSet != "") nWaveformSet = Convert.ToInt16(sWaveformSet);
+
+                string sWavescaleSet;
+                if (parser.Arguments.ContainsKey("scale"))
+                {
+                    sWavescaleSet = parser.Arguments["scale"][0];
+                }
+                else
+                {
                     Console.WriteLine();
                     Console.WriteLine("Waveform data export scale and calibrate options:");
                     Console.WriteLine("1. Export scaled values");
@@ -401,19 +609,22 @@ namespace VSCaptureMP
                     Console.WriteLine();
                     Console.Write("Choose Waveform data export scale option (1-2):");
 
-                    string sWavescaleSet = Console.ReadLine();
-                    short nWavescaleSet = 1;
-                    if (sWavescaleSet != "") nWavescaleSet = Convert.ToInt16(sWavescaleSet);
-                    if (nWavescaleSet == 1) _serialPort.m_calibratewavevalues = false;
-                    if (nWavescaleSet == 2) _serialPort.m_calibratewavevalues = true;
+                    sWavescaleSet = Console.ReadLine();
 
-                    Console.WriteLine();
-                    Console.WriteLine("Requesting Transmission set {0} from monitor", nIntervalset);
-                    Console.WriteLine();
-                    Console.WriteLine("Data will be written to CSV file MPDataExport.csv in same folder");
-                    Console.WriteLine();
+                }
 
-                
+                short nWavescaleSet = 1;
+                if (sWavescaleSet != "") nWavescaleSet = Convert.ToInt16(sWavescaleSet);
+                if (nWavescaleSet == 1) _serialPort.m_calibratewavevalues = false;
+                if (nWavescaleSet == 2) _serialPort.m_calibratewavevalues = true;
+
+                Console.WriteLine();
+                Console.WriteLine("Requesting Transmission set {0} from monitor", nIntervalset);
+                Console.WriteLine();
+                Console.WriteLine("Data will be written to CSV file MPDataExport.csv in same folder");
+                Console.WriteLine();
+
+            
                 Console.WriteLine("Press Escape button to Stop");
 
                 if (nCSVset > 0 && nCSVset < 4) _serialPort.m_csvexportset = nCSVset;
@@ -428,7 +639,6 @@ namespace VSCaptureMP
                 if (nWaveformSet != 0)
                 {
                     _serialPort.GetRTSAPriorityListRequest();
-                    //_serialPort.SetRTSAPriorityListRequest();
                     if(nWaveformSet != 9)
                     {
                         _serialPort.SetRTSAPriorityList(nWaveformSet);
@@ -448,7 +658,6 @@ namespace VSCaptureMP
                     {
                         if (_serialPort.BytesToRead != 0)
                         {
-                            //dataEvent.Invoke(new object(), new EventArgs());
                             dataEvent.Invoke(_serialPort, new EventArgs());
                         }
 
@@ -518,6 +727,44 @@ namespace VSCaptureMP
 
         }
 
+        public class CommandLineParser
+        {
+            public CommandLineParser()
+            {
+                Arguments = new Dictionary<string, string[]>();
+            }
+
+            public IDictionary<string, string[]> Arguments { get; private set; }
+
+            public void Parse(string[] args)
+            {
+                string currentName = "";
+                var values = new List<string>();
+                foreach (string arg in args)
+                {
+                    if (arg.StartsWith("-", StringComparison.InvariantCulture))
+                    {
+                        if (currentName != "")
+                            Arguments[currentName] = values.ToArray();
+
+                        values.Clear();
+                        currentName = arg.Substring(1);
+                    }
+                    else if (currentName == "")
+                        Arguments[arg] = new string[0];
+                    else
+                        values.Add(arg);
+                }
+
+                if (currentName != "")
+                    Arguments[currentName] = values.ToArray();
+            }
+
+            public bool Contains(string name)
+            {
+                return Arguments.ContainsKey(name);
+            }
+        }
     }
 
 }
