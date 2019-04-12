@@ -56,6 +56,7 @@ namespace VSCaptureMP
         public uint m_baseRelativeTime = 0;
         public string m_DeviceID;
         public string m_jsonposturl;
+        public int m_dataexportset = 1;
 
 
         public class NumericValResult
@@ -584,7 +585,7 @@ namespace VSCaptureMP
                     }
                 }
 
-                ExportNumValListToJSON("Numeric");
+                if (m_dataexportset == 2) ExportNumValListToJSON("Numeric");
                 ExportDataToCSV();
 				ExportWaveToCSV();
             }

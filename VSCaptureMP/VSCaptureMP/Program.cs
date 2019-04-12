@@ -350,6 +350,8 @@ namespace VSCaptureMP
                 _MPudpclient.m_DeviceID = DeviceID;
                 _MPudpclient.m_jsonposturl = JSONPostUrl;
 
+                if (nDataExportset > 0 && nDataExportset < 3) _MPudpclient.m_dataexportset = nDataExportset;
+
                 try
                 {
                     _MPudpclient.Connect(_MPudpclient.m_remoteIPtarget);
@@ -551,6 +553,8 @@ namespace VSCaptureMP
                 }
                 _serialPort.m_DeviceID = DeviceID;
                 _serialPort.m_jsonposturl = JSONPostUrl;
+
+                if (nDataExportset > 0 && nDataExportset < 3) _serialPort.m_dataexportset = nDataExportset;
 
                 /*Console.WriteLine();
                 Console.WriteLine("CSV Data Export Options:");
