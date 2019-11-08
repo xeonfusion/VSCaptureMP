@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.005.
+ * This file is part of VitalSignsCaptureMP v1.006.
  * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
  * Portions of code (C) 2015 Richard L. Grier
  
@@ -2757,6 +2757,10 @@ namespace VSCaptureMP
         public const int MSMT_STATE_AL_INHIBITED = 0x0001;
 
         public const int FLOATTYPE_NAN = 0x007FFFFF;
+        public const int FLOATTYPE_NRes = 0x800000;
+        public const int FLOATTYPE_POSITIVE_INFINITY = 0x7FFFFE;
+        public const int FLOATTYPE_NEGATIVE_INFINITY = 0x800002;
+
 
         //MetricCategory
         public const byte MCAT_UNSPEC = 0;

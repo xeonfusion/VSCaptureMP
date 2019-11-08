@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.005.
+ * This file is part of VitalSignsCaptureMP v1.006.
  * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -271,13 +271,13 @@ namespace VSCaptureMP
                 Console.WriteLine("Waveform data export options:");
                 Console.WriteLine("0. None");
                 Console.WriteLine("1. ECG I, II, III");
-                Console.WriteLine("2. ECG II, ABP, PLETH, CVP, RESP");
+                Console.WriteLine("2. ECG II, ABP, ART IBP, PLETH, CVP, RESP");
                 Console.WriteLine("3. ECG AVR, ECG AVL, ECG AVF");
                 Console.WriteLine("4. ECG V1, ECG V2, ECG V3");
                 Console.WriteLine("5. ECG V4, ECG V5, ECG V6");
                 Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
                 Console.WriteLine("7. ABP, ART IBP");
-                Console.WriteLine("8. Compound ECG, PLETH, ABP, CVP, CO2");
+                Console.WriteLine("8. Compound ECG, PLETH, ABP, ART IBP, CVP, CO2");
                 Console.WriteLine("9. All");
 
                 Console.WriteLine();
@@ -337,6 +337,8 @@ namespace VSCaptureMP
             Console.WriteLine();
             Console.WriteLine("Press Escape button to Stop");
 
+            if (nDataExportset > 0 && nDataExportset < 3) _MPudpclient.m_dataexportset = nDataExportset;
+
             if (nCSVset > 0 && nCSVset < 4) _MPudpclient.m_csvexportset = nCSVset;
 
             if (nWavescaleSet == 1) _MPudpclient.m_calibratewavevalues = false;
@@ -349,8 +351,6 @@ namespace VSCaptureMP
 
                 _MPudpclient.m_DeviceID = DeviceID;
                 _MPudpclient.m_jsonposturl = JSONPostUrl;
-
-                if (nDataExportset > 0 && nDataExportset < 3) _MPudpclient.m_dataexportset = nDataExportset;
 
                 try
                 {
@@ -579,13 +579,13 @@ namespace VSCaptureMP
                     Console.WriteLine("Waveform data export priority options:");
                     Console.WriteLine("0. None");
                     Console.WriteLine("1. ECG I, II, III");
-                    Console.WriteLine("2. ECG II, ABP, PLETH, CVP, RESP");
+                    Console.WriteLine("2. ECG II, ABP, ART IBP, PLETH, CVP, RESP");
                     Console.WriteLine("3. ECG AVR, ECG AVL, ECG AVF");
                     Console.WriteLine("4. ECG V1, ECG V2, ECG V3");
                     Console.WriteLine("5. ECG V4, ECG V5, ECG V6");
                     Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
                     Console.WriteLine("7. ABP, ART IBP");
-                    Console.WriteLine("8. Compound ECG, PLETH, ABP, CVP, CO2");
+                    Console.WriteLine("8. Compound ECG, PLETH, ABP, ART IBP, CVP, CO2");
                     Console.WriteLine("9. All");
 
                     Console.WriteLine();
