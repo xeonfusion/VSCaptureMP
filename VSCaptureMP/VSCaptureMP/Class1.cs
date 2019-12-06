@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.006.
+ * This file is part of VitalSignsCaptureMP v1.007.
  * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -26,7 +26,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Globalization;
 using System.Runtime.Serialization.Json;
-using System.Net;
 
 
 namespace VSCaptureMP
@@ -1470,13 +1469,14 @@ namespace VSCaptureMP
             try
             {
                 // Open file for reading. 
-                StreamWriter wrStream = new StreamWriter(_FileName, true, Encoding.UTF8);
+                using (StreamWriter wrStream = new StreamWriter(_FileName, true, Encoding.UTF8))
+                {
+                    wrStream.Write(strbuildNumVal);
+                    strbuildNumVal.Clear();
 
-                wrStream.Write(strbuildNumVal);
-                strbuildNumVal.Clear();
-
-                // close file stream. 
-                wrStream.Close();
+                    // close file stream. 
+                    wrStream.Close();
+                }
 
             }
 
@@ -1492,25 +1492,16 @@ namespace VSCaptureMP
         {
             try
             {
-                /*// Open file for reading. 
-                FileStream _FileStream = new FileStream(_FileName, FileMode.Append, FileAccess.Write);
-
-                // Writes a block of bytes to this stream using data from a byte array
-                _FileStream.Write(_ByteArray, 0, nWriteLength);
-                
-                // close file stream. 
-                _FileStream.Close();*/
-
                 // Open file for reading. 
-                StreamWriter wrStream = new StreamWriter(_FileName, true, Encoding.UTF8);
+                using (StreamWriter wrStream = new StreamWriter(_FileName, true, Encoding.UTF8))
+                {
+                    String datastr = BitConverter.ToString(_ByteArray);
 
-                String datastr = BitConverter.ToString(_ByteArray);
+                    wrStream.WriteLine(datastr);
 
-                wrStream.WriteLine(datastr);
-                
-                // close file stream. 
-                wrStream.Close();
-
+                    // close file stream. 
+                    wrStream.Close();
+                }
 
                 return true;
             }
@@ -1541,11 +1532,11 @@ namespace VSCaptureMP
             try
             {
                 // Open file for reading. 
-                //StreamWriter wrStream = new StreamWriter(pathjson, true, Encoding.UTF8);
-
-                //wrStream.Write(serializedJSON);
-
-                //wrStream.Close();
+                //using (StreamWriter wrStream = new StreamWriter(pathjson, true, Encoding.UTF8))
+                //{
+                //  wrStream.Write(serializedJSON);
+                //  wrStream.Close();
+                //}
 
                 PostJSONDataToServer(serializedJSON);
 

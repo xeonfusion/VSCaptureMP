@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.006.
+ * This file is part of VitalSignsCaptureMP v1.007.
  * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
