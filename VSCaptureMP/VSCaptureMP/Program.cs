@@ -37,7 +37,7 @@ namespace VSCaptureMP
 
         static void Main(string[] args)
         {
-            Console.WriteLine("VitalSignsCaptureMP MIB (C)2017-20 John George K.");
+            Console.WriteLine("VitalSignsCaptureMP MIB (C)2017-21 John George K.");
             Console.WriteLine("For command line usage: -help");
             Console.WriteLine();
 
