@@ -1,6 +1,6 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.007.
- * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
+ * This file is part of VitalSignsCaptureMP v1.008.
+ * Copyright (C) 2017-21 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -52,6 +52,7 @@ namespace VSCaptureMP
         public ushort m_obpollhandle = 0;
         public uint m_idlabelhandle = 0;
         public DateTime m_baseDateTime = new DateTime();
+        public DateTime m_pollDateTime = new DateTime();
         public uint m_baseRelativeTime = 0;
         public string m_DeviceID;
         public string m_jsonposturl;
@@ -62,6 +63,7 @@ namespace VSCaptureMP
         {
             public string Timestamp;
             public string Relativetimestamp;
+            public string SystemLocalTime;
             public string PhysioID;
             public string Value;
             public string DeviceID;
@@ -71,7 +73,8 @@ namespace VSCaptureMP
 		{
 			public string Timestamp;
 			public string Relativetimestamp;
-			public string PhysioID;
+            public string SystemLocalTime;
+            public string PhysioID;
 			public byte[] Value;
             public string DeviceID;
             public ushort obpoll_handle;
@@ -128,6 +131,11 @@ namespace VSCaptureMP
         public void SendMDSCreateEventResult()
         {
             MPClient.Send(DataConstants.mds_create_resp_msg, DataConstants.mds_create_resp_msg.Length);
+        }
+
+        public void SendMDSPollDataRequest()
+        {
+            MPClient.Send(DataConstants.poll_mds_request_msg, DataConstants.poll_mds_request_msg.Length);
         }
 
         public void SendPollDataRequest()
@@ -236,6 +244,16 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_AWAY_CO2")))));
                     break;
+                case 9:
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x06))); //count
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x18))); //length
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_II")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_ART")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_INTRA_CRAN")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_INTRA_CRAN_2")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_TEMP_BLD")))));
+                    break;
             }
         }
 
@@ -336,7 +354,22 @@ namespace VSCaptureMP
             }
             
         }
-        
+
+        public async Task RecheckMDSAttributes(int nInterval)
+        {
+            int nmillisecond = 60 * 1000;
+            if (nmillisecond != 0 && nInterval > 1000)
+            {
+                do
+                {
+                    SendMDSPollDataRequest();
+                    await Task.Delay(nmillisecond);
+                }
+                while (true);
+            }
+
+        }
+
         public void ParseMDSCreateEventReport (byte[] readmdsconnectbuffer)
         {
             MemoryStream memstream = new MemoryStream(readmdsconnectbuffer);
@@ -379,7 +412,7 @@ namespace VSCaptureMP
                 {
                     //Get Date and Time
                     case DataConstants.NOM_ATTR_TIME_ABS:
-                        GetAbsoluteTimeFromBCDFormat(avaattribobjects);
+                        m_baseDateTime = GetAbsoluteTimeFromBCDFormat(avaattribobjects);
                         break;
                     //Get Relative Time attribute
                     case DataConstants.NOM_ATTR_TIME_REL:
@@ -415,7 +448,7 @@ namespace VSCaptureMP
             else return 0;
         }
 
-        public void GetAbsoluteTimeFromBCDFormat(byte[] bcdtimebuffer)
+        public DateTime GetAbsoluteTimeFromBCDFormat(byte[] bcdtimebuffer)
         {
             int century = BinaryCodedDecimalToInteger(bcdtimebuffer[0]);
             int year = BinaryCodedDecimalToInteger(bcdtimebuffer[1]);
@@ -428,15 +461,30 @@ namespace VSCaptureMP
 
             int formattedyear = (century * 100) + year;
 
-            DateTime dateTime = new DateTime(formattedyear, month, day, hour, minute, second, fraction);
+            DateTime dateTime = m_baseDateTime;
 
-            m_baseDateTime = dateTime;
+            if (formattedyear !=0)
+            {
+                dateTime = new DateTime(formattedyear, month, day, hour, minute, second, fraction);
+            }
+            
+            //m_baseDateTime = dateTime;
+            return dateTime;
 
         }
 
         public void GetBaselineRelativeTimestamp(byte[] timebuffer)
         {
             m_baseRelativeTime = correctendianuint(BitConverter.ToUInt32(timebuffer, 0));
+        }
+
+        public DateTime GetAbsoluteTimeFromRelativeTimestamp(uint currentRelativeTime)
+        {
+            double ElapsedTimeMilliseconds = Math.Abs(((double)currentRelativeTime - (double)m_baseRelativeTime) * 125 / 1000);
+
+            DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseconds);
+
+            return dtDateTime;
         }
 
         public void ReadData(byte[] readbuffer)
@@ -531,10 +579,10 @@ namespace VSCaptureMP
             Array.Copy(packetbuffer, header.Length, packetdata, 0, packetdata.Length);
 
             m_strTimestamp = GetPacketTimestamp(header);
-            uint currentRelativeTime = UInt32.Parse(m_strTimestamp);
+
             //DateTime dtDateTime = DateTime.Now;
-            double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime) * 125 / 1000;
-            DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
+            uint currentRelativeTime = UInt32.Parse(m_strTimestamp);
+            DateTime dtDateTime = GetAbsoluteTimeFromRelativeTimestamp(currentRelativeTime);
 
             string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
             Console.WriteLine("Time:{0}", strDateTime);
@@ -705,7 +753,10 @@ namespace VSCaptureMP
             byte[] firstpartheader = binreader.ReadBytes(firstpartheaderlength);
             byte[] pollmdibdatareplyarray = binreader.ReadBytes(pollmdibdatareplysize);
 
-            double relativetime =0;
+            uint relativetime = 0;
+            byte[] absolutetimearray = new byte[8];
+            ushort pollresultcode = 0;
+            
             if (m_actiontype == DataConstants.NOM_ACT_POLL_MDIB_DATA)
             { 
                 PollMdibDataReply pollmdibdatareply = new PollMdibDataReply();
@@ -715,8 +766,17 @@ namespace VSCaptureMP
 
                 pollmdibdatareply.poll_number = correctendianshortus(binreader2.ReadUInt16());
                 pollmdibdatareply.rel_time_stamp = correctendianuint(binreader2.ReadUInt32());
-
+                
                 relativetime = pollmdibdatareply.rel_time_stamp;
+
+                absolutetimearray = binreader2.ReadBytes(8);
+                
+                pollmdibdatareply.type.partition = correctendianshortus(binreader2.ReadUInt16());
+                pollmdibdatareply.type.code = correctendianshortus(binreader2.ReadUInt16());
+
+                pollresultcode = pollmdibdatareply.type.code;
+
+            
             }
             else if(m_actiontype == DataConstants.NOM_ACT_POLL_MDIB_DATA_EXT)
             {
@@ -728,12 +788,29 @@ namespace VSCaptureMP
                 pollmdibdatareplyext.poll_number = correctendianshortus(binreader2.ReadUInt16());
                 pollmdibdatareplyext.sequence_no = correctendianshortus(binreader2.ReadUInt16());
                 pollmdibdatareplyext.rel_time_stamp = correctendianuint(binreader2.ReadUInt32());
+                
 
                 relativetime = pollmdibdatareplyext.rel_time_stamp;
+
+                absolutetimearray = binreader2.ReadBytes(8);
+
+                pollmdibdatareplyext.type.partition = correctendianshortus(binreader2.ReadUInt16());
+                pollmdibdatareplyext.type.code = correctendianshortus(binreader2.ReadUInt16());
+
+                pollresultcode = pollmdibdatareplyext.type.code;
             }
             
             string strRelativeTime = relativetime.ToString();
-            
+
+            if(pollresultcode == DataConstants.NOM_MOC_VMS_MDS)
+            {
+                //Get baseline timestamps if packet type is MDS attributes
+                m_baseRelativeTime = relativetime;
+                m_baseDateTime = GetAbsoluteTimeFromBCDFormat(absolutetimearray);
+            }
+
+            //m_pollDateTime = GetAbsoluteTimeFromBCDFormat(absolutetimearray);
+
             //AbsoluteTime is not supported by several monitors
             /*AbsoluteTime absolutetime = new AbsoluteTime();
 
@@ -815,14 +892,18 @@ namespace VSCaptureMP
 
             //DateTime dtDateTime = DateTime.Now;
             uint currentRelativeTime = UInt32.Parse(m_strTimestamp);
-            double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime) * 125 / 1000;
-            DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
+            DateTime dtDateTime = GetAbsoluteTimeFromRelativeTimestamp(currentRelativeTime);
+
             //NumVal.Timestamp = dtDateTime.ToString();
 
             //string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
             string strDateTime = dtDateTime.ToString("G", DateTimeFormatInfo.InvariantInfo);
             NumVal.Timestamp = strDateTime;
             //NumVal.Timestamp = DateTime.Now.ToString();
+
+            DateTime dtSystemDateTime = DateTime.Now;
+            string strSystemLocalDateTime = dtSystemDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            NumVal.SystemLocalTime = strSystemLocalDateTime;
 
             NumVal.PhysioID = physio_id;
             NumVal.Value = valuestr;
@@ -914,11 +995,14 @@ namespace VSCaptureMP
 
             //DateTime dtDateTime = DateTime.Now;
             uint currentRelativeTime = UInt32.Parse(m_strTimestamp);
-            double ElapsedTimeMilliseonds = (currentRelativeTime - m_baseRelativeTime) * 125 / 1000;
-            DateTime dtDateTime = m_baseDateTime.AddMilliseconds(ElapsedTimeMilliseonds);
+            DateTime dtDateTime = GetAbsoluteTimeFromRelativeTimestamp(currentRelativeTime);
 
             string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
             //WaveVal.Timestamp = DateTime.Now.ToString();
+
+            DateTime dtSystemDateTime = DateTime.Now;
+            string strSystemLocalDateTime = dtSystemDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            WaveVal.SystemLocalTime = strSystemLocalDateTime;
 
             WaveVal.Timestamp = strDateTime;
             WaveVal.PhysioID = physio_id;
@@ -1180,7 +1264,8 @@ namespace VSCaptureMP
                 m_strbuildheaders.Append("Time");
                 m_strbuildheaders.Append(',');
                 m_strbuildheaders.Append("RelativeTime");
-
+                m_strbuildheaders.Append(',');
+                m_strbuildheaders.Append("SystemLocalTime");
                 m_strbuildheaders.Append(',');
 
 
@@ -1215,6 +1300,8 @@ namespace VSCaptureMP
                     m_strbuildvalues.Append(',');
                     m_strbuildvalues.Append(NumValResult.Relativetimestamp);
                     m_strbuildvalues.Append(',');
+                    m_strbuildvalues.Append(NumValResult.SystemLocalTime);
+                    m_strbuildvalues.Append(',');
                     m_strbuildvalues.Append(NumValResult.PhysioID);
                     m_strbuildvalues.Append(',');
                     m_strbuildvalues.Append(NumValResult.Value);
@@ -1237,6 +1324,8 @@ namespace VSCaptureMP
                 m_strbuildvalues.Append(m_NumericValList.ElementAt(0).Timestamp);
                 m_strbuildvalues.Append(',');
                 m_strbuildvalues.Append(m_NumericValList.ElementAt(0).Relativetimestamp);
+                m_strbuildvalues.Append(',');
+                m_strbuildvalues.Append(m_NumericValList.ElementAt(0).SystemLocalTime);
                 m_strbuildvalues.Append(',');
 
 
@@ -1282,6 +1371,8 @@ namespace VSCaptureMP
                     else
                     {
                         m_strbuildvalues.Insert(0, ',');
+                        m_strbuildvalues.Insert(0, m_NumericValList.ElementAt(0).SystemLocalTime);
+                        m_strbuildvalues.Insert(0, ',');
                         m_strbuildvalues.Insert(0, m_NumericValList.ElementAt(0).Relativetimestamp);
                         m_strbuildvalues.Insert(0, ',');
                         m_strbuildvalues.Insert(0, m_NumericValList.ElementAt(0).Timestamp);
@@ -1324,6 +1415,8 @@ namespace VSCaptureMP
                     }
                     else
                     {
+                        m_strbuildheaders.Insert(0, ',');
+                        m_strbuildheaders.Insert(0, "SystemLocalTime");
                         m_strbuildheaders.Insert(0, ',');
                         m_strbuildheaders.Insert(0, "RelativeTime");
                         m_strbuildheaders.Insert(0, ',');
@@ -1403,6 +1496,8 @@ namespace VSCaptureMP
                             m_strbuildwavevalues.Append(WavValResult.Timestamp);
                             m_strbuildwavevalues.Append(',');
                             m_strbuildwavevalues.Append(WavValResult.Relativetimestamp);
+                            m_strbuildwavevalues.Append(',');
+                            m_strbuildwavevalues.Append(WavValResult.SystemLocalTime);
                             m_strbuildwavevalues.Append(',');
                             m_strbuildwavevalues.Append(Waveval.ToString());
                             m_strbuildwavevalues.Append(',');

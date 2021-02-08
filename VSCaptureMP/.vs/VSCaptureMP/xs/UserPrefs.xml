@@ -1,0 +1,30 @@
+﻿<Properties StartupConfiguration="{510B78E3-D5A9-4393-A630-2417727B010D}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="VSCaptureMP/Class3.cs">
+    <Files>
+      <File FileName="VSCaptureMP/Program.cs" Line="680" Column="1" />
+      <File FileName="VSCaptureMP/Class1.cs" />
+      <File FileName="VSCaptureMP/Class2.cs" />
+      <File FileName="VSCaptureMP/Class3.cs" Line="892" Column="77" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="VSCaptureMP" expanded="True">
+            <Node name="VSCaptureMP" expanded="True">
+              <Node name="Class3.cs" selected="True" />
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore>
+      <Breakpoint file="/Users/johngeorgedon/Documents/Philips connect/Test builds/Hrush/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/Class3.cs" relfile="VSCaptureMP/Class3.cs" line="1121" column="13" />
+    </BreakpointStore>
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+  <MonoDevelop.Ide.ItemProperties.VSCaptureMP PreferredExecutionTarget="MonoDevelop.Default" />
+</Properties>

@@ -1,6 +1,6 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.007.
- * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
+ * This file is part of VitalSignsCaptureMP v1.008.
+ * Copyright (C) 2017-21 John George K., xeonfusion@users.sourceforge.net
  * Portions of code (C) 2015 Richard L. Grier
  
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -2584,6 +2584,11 @@ namespace VSCaptureMP
         0xE1, 0x00, 0x00, 0x02, 0x00, 0x02, 0x00, 0x14, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0E, 0x00, 0x21,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x0A, 0xBD, 0x00, 0x0D, 0x06, 0x00, 0x00 };
 
+        public static byte[] poll_mds_request_msg = {
+        0xE1, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x07, 0x00, 0x16, 0x00, 0x21,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x16, 0x00, 0x08, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x21, 0x00, 0x00 };
+
         public static byte[] poll_request_msg = {
         0xE1, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x07, 0x00, 0x16, 0x00, 0x21,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x16, 0x00, 0x08, 0x00, 0x01, 0x00, 0x01,
@@ -2792,6 +2797,8 @@ namespace VSCaptureMP
 
         //-----------------------------------------------------------------------------
 
+        public const ushort NOM_MOC_VMS_MDS = 33;
+        //MDS
         public const int NOM_ATTR_METRIC_SPECN = 2367;
         public const int NOM_ATTR_ID_HANDLE = 2337;
         public const int NOM_ATTR_ID_LABEL = 2340;
@@ -2870,7 +2877,10 @@ namespace VSCaptureMP
             NLS_EEG_NAMES_EEG_CHAN1_LBL = 0x800F5401,
             NLS_EEG_NAMES_EEG_CHAN2_LBL = 0x800F5402,
             NLS_EEG_NAMES_EEG_CHAN3_LBL = 0x800F5432,
-            NLS_EEG_NAMES_EEG_CHAN4_LBL = 0x800F5434
+            NLS_EEG_NAMES_EEG_CHAN4_LBL = 0x800F5434,
+            NLS_NOM_PRESS_INTRA_CRAN = 0x00025808,
+            NLS_NOM_PRESS_INTRA_CRAN_2 = 0x0002F0B8,
+            NLS_NOM_TEMP_BLD = 0x0002E014
 
         }
     }
@@ -3051,7 +3061,7 @@ namespace VSCaptureMP
         public ushort poll_number;
         public uint rel_time_stamp;
         public AbsoluteTime abs_time_stamp;
-        public ObjectType type;
+        public ObjectType type = new ObjectType();
         public ushort polled_attr_grp;
     };
 
@@ -3062,7 +3072,7 @@ namespace VSCaptureMP
         public ushort sequence_no;
         public uint rel_time_stamp;
         public AbsoluteTime abs_time_stamp;
-        public ObjectType type;
+        public ObjectType type =  new ObjectType();
         public ushort polled_attr_grp;
     };
 

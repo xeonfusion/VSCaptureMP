@@ -1,6 +1,6 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.007.
- * Copyright (C) 2017-19 John George K., xeonfusion@users.sourceforge.net
+ * This file is part of VitalSignsCaptureMP v1.008.
+ * Copyright (C) 2017-21 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -37,7 +37,7 @@ namespace VSCaptureMP
 
         static void Main(string[] args)
         {
-            Console.WriteLine("VitalSignsCaptureMP MIB (C)2017-19 John George K.");
+            Console.WriteLine("VitalSignsCaptureMP MIB (C)2017-20 John George K.");
             Console.WriteLine("For command line usage: -help");
             Console.WriteLine();
 
@@ -278,11 +278,12 @@ namespace VSCaptureMP
                 Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
                 Console.WriteLine("7. ABP, ART IBP");
                 Console.WriteLine("8. Compound ECG, PLETH, ABP, ART IBP, CVP, CO2");
-                Console.WriteLine("9. All");
+                Console.WriteLine("9. ECG II, ART IBP, ICP, ICP2, CVP, TEMP BLOOD");
+                Console.WriteLine("10. All");
 
                 Console.WriteLine();
                 Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
-                Console.Write("Choose Waveform data export priority option (0-9):");
+                Console.Write("Choose Waveform data export priority option (0-10):");
 
                 sWaveformSet = Console.ReadLine();
 
@@ -388,13 +389,16 @@ namespace VSCaptureMP
                     if (nWaveformSet != 0)
                     {
                         _MPudpclient.GetRTSAPriorityListRequest();
-                        if (nWaveformSet != 9)
+                        if (nWaveformSet != 10)
                         {
                             _MPudpclient.SetRTSAPriorityList(nWaveformSet);
                         }
 
                         Task.Run(() => _MPudpclient.SendCycledExtendedPollWaveDataRequest(nInterval));
                     }
+
+                    //Recheck MDS Attributes
+                    Task.Run(() => _MPudpclient.RecheckMDSAttributes(nInterval));
 
                     //Keep Connection Alive
                     Task.Run(() => _MPudpclient.KeepConnectionAlive(nInterval));
@@ -586,11 +590,12 @@ namespace VSCaptureMP
                     Console.WriteLine("6. EEG1, EEG2, EEG3, EEG4");
                     Console.WriteLine("7. ABP, ART IBP");
                     Console.WriteLine("8. Compound ECG, PLETH, ABP, ART IBP, CVP, CO2");
-                    Console.WriteLine("9. All");
+                    Console.WriteLine("9. ECG II, ART IBP, ICP, ICP2, CVP, TEMP BLOOD");
+                    Console.WriteLine("10. All");
 
                     Console.WriteLine();
                     Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
-                    Console.Write("Choose Waveform data export priority option (0-9):");
+                    Console.Write("Choose Waveform data export priority option (0-10):");
 
                    sWaveformSet = Console.ReadLine();
 
@@ -643,13 +648,16 @@ namespace VSCaptureMP
                 if (nWaveformSet != 0)
                 {
                     _serialPort.GetRTSAPriorityListRequest();
-                    if(nWaveformSet != 9)
+                    if(nWaveformSet != 10)
                     {
                         _serialPort.SetRTSAPriorityList(nWaveformSet);
                     }
 
                     Task.Run(() => _serialPort.SendCycledExtendedPollWaveDataRequest(nInterval));
                 }
+
+                //Recheck MDS Attributes
+                Task.Run(() => _serialPort.RecheckMDSAttributes(nInterval));
 
                 //Keep Connection Alive
                 Task.Run(() => _serialPort.KeepConnectionAlive(nInterval));

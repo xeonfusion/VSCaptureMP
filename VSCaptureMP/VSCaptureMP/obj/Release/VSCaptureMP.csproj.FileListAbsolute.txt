@@ -1,0 +1,12 @@
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Francisco/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/bin/Release/VSCaptureMP.exe.config
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Francisco/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/bin/Release/VSCaptureMP.exe
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Francisco/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/bin/Release/VSCaptureMP.pdb
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Francisco/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/obj/Release/VSCaptureMP.csproj.CoreCompileInputs.cache
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Francisco/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/obj/Release/VSCaptureMP.exe
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Francisco/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/obj/Release/VSCaptureMP.pdb
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Hrush/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/bin/Release/VSCaptureMP.exe.config
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Hrush/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/bin/Release/VSCaptureMP.exe
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Hrush/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/bin/Release/VSCaptureMP.pdb
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Hrush/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/obj/Release/VSCaptureMP.csproj.CoreCompileInputs.cache
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Hrush/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/obj/Release/VSCaptureMP.exe
+/Users/johngeorgedon/Documents/Philips connect/Test builds/Hrush/VSCaptureMP_MIBv1.007Source/VSCaptureMPWaveMIB/VSCaptureMP/VSCaptureMP/obj/Release/VSCaptureMP.pdb
