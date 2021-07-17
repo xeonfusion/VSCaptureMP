@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.008.
+ * This file is part of VitalSignsCaptureMP v1.009.
  * Copyright (C) 2017-21 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -27,6 +27,12 @@ using System.Threading;
 using System.Runtime.Serialization.Json;
 using System.Net;
 
+using MQTTnet;
+//using MQTTnet.Client;
+using MQTTnet.Client.Options;
+using MQTTnet.Extensions.ManagedClient;
+using MQTTnet.Client.Connecting;
+using MQTTnet.Diagnostics;
 
 namespace VSCaptureMP
 {
@@ -106,7 +112,7 @@ namespace VSCaptureMP
     {
         private int MPPortBufSize;
         public byte[] MPPort_rxbuf;
-        private bool m_fstart = true;
+        //private bool m_fstart = true;
         private bool m_storestart = false;
         private bool m_storeend = false;
         private bool m_bitshiftnext = false;
@@ -138,6 +144,12 @@ namespace VSCaptureMP
         public string m_DeviceID;
         public string m_jsonposturl;
         public int m_dataexportset = 1;
+
+        public string m_MQTTUrl;
+        public string m_MQTTtopic;
+        public string m_MQTTuser;
+        public string m_MQTTpassw;
+        public string m_MQTTclientId = Guid.NewGuid().ToString();
 
 
         public class NumericValResult
@@ -958,8 +970,12 @@ namespace VSCaptureMP
                 }
 
                 if (m_dataexportset == 2) ExportNumValListToJSON("Numeric");
-                ExportDataToCSV();
-                ExportWaveToCSV();
+                if (m_dataexportset == 3) ExportNumValListToMQTT("Numeric");
+                if (m_dataexportset != 3)
+                {
+                    ExportDataToCSV();
+                    ExportWaveToCSV();
+                }
             }
 
         }
@@ -1219,8 +1235,8 @@ namespace VSCaptureMP
             
             //NumVal.Timestamp = dtDateTime.ToString();
 
-            //string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
-            string strDateTime = dtDateTime.ToString("G", DateTimeFormatInfo.InvariantInfo);
+            string strDateTime = dtDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            //string strDateTime = dtDateTime.ToString("G", DateTimeFormatInfo.InvariantInfo);
             NumVal.Timestamp = strDateTime;
             //NumVal.Timestamp = DateTime.Now.ToString();
 
@@ -2001,6 +2017,111 @@ namespace VSCaptureMP
             }
 
             response.Close();
+        }
+
+        public void ExportNumValListToMQTT(string datatype)
+        {
+            DataContractJsonSerializer jsonSerializer = new DataContractJsonSerializer(typeof(List<NumericValResult>));
+
+            MemoryStream memstream = new MemoryStream();
+            jsonSerializer.WriteObject(memstream, m_NumericValList);
+
+            string serializedJSON = Encoding.UTF8.GetString(memstream.ToArray());
+            memstream.Close();
+
+            m_NumericValList.RemoveRange(0, m_NumericValList.Count);
+            CancellationTokenSource source = new CancellationTokenSource();
+            CancellationToken token = source.Token;
+
+            var mqttClient = new MqttFactory().CreateMqttClient();
+            var managedClient = new ManagedMqttClient(mqttClient, new MqttNetLogger());
+            {
+                try
+                {
+                    var task = Task.Run(async () =>
+                    {
+                        var connected = GetConnectedTask(managedClient);
+                        await ConnectMQTTAsync(managedClient, token, m_MQTTUrl, m_MQTTclientId, m_MQTTuser, m_MQTTpassw);
+                        await connected;
+
+                    });
+
+                    task.ContinueWith( antecedent => {
+                            if (antecedent.Status == TaskStatus.RanToCompletion)
+                            {
+                                Task.Run(async () =>
+                                {
+                                    await PublishMQTTAsync(managedClient, token, m_MQTTtopic, serializedJSON);
+                                    await managedClient.StopAsync();
+                                });
+                            }
+                    });
+
+                    //ConnectMQTTAsync(m_mqttClient, token, m_MQTTUrl, m_MQTTclientId, m_MQTTuser, m_MQTTpassw).Wait();
+                    //m_MQTTtopic = String.Format("/VSCapture/{0}/numericdata/", m_DeviceID);
+                    //PublishMQTTAsync(m_mqttClient, token, m_MQTTtopic, serializedJSON).Wait();
+                }
+
+                catch (Exception _Exception)
+                {
+                    // Error. 
+                    Console.WriteLine("Exception caught in process: {0}", _Exception.ToString());
+                }
+
+            }
+             
+        }
+
+        public static async Task ConnectMQTTAsync(ManagedMqttClient mqttClient, CancellationToken token, string mqtturl, string clientId, string mqttuser, string mqttpassw)
+        {
+            bool mqttSecure = true;
+
+            var messageBuilder = new MqttClientOptionsBuilder()
+            .WithClientId(clientId)
+            .WithCredentials(mqttuser, mqttpassw)
+            .WithCommunicationTimeout(new TimeSpan(0, 0, 10))
+            .WithWebSocketServer(mqtturl)
+            .WithCleanSession();
+
+            var options = mqttSecure
+            ? messageBuilder
+                .WithTls()
+                .Build()
+            : messageBuilder
+                .Build();
+
+            var managedOptions = new ManagedMqttClientOptionsBuilder()
+              .WithAutoReconnectDelay(TimeSpan.FromSeconds(5))
+              .WithClientOptions(options)
+              .Build();
+
+            await mqttClient.StartAsync(managedOptions);
+ 
+        }
+
+        public static async Task PublishMQTTAsync(ManagedMqttClient mqttClient, CancellationToken token, string topic, string payload, bool retainFlag = true, int qos = 1)
+        {
+            if (mqttClient.IsConnected)
+            {
+                await mqttClient.PublishAsync(new MqttApplicationMessageBuilder()
+               .WithTopic(topic)
+               .WithPayload(payload)
+               .WithQualityOfServiceLevel((MQTTnet.Protocol.MqttQualityOfServiceLevel)qos)
+               .WithRetainFlag(retainFlag)
+               .Build(), token);
+            }
+                
+        }
+
+        Task GetConnectedTask(ManagedMqttClient managedClient)
+        {
+            TaskCompletionSource<bool> connected = new TaskCompletionSource<bool>();
+            managedClient.ConnectedHandler = new MqttClientConnectedHandlerDelegate(e =>
+            {
+                managedClient.ConnectedHandler = null;
+                connected.SetResult(true);
+            });
+            return connected.Task;
         }
 
         public void StopTransfer()

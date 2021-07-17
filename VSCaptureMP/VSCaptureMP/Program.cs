@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.008.
+ * This file is part of VitalSignsCaptureMP v1.009.
  * Copyright (C) 2017-21 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -34,6 +34,11 @@ namespace VSCaptureMP
         static EventHandler dataEvent;
         public static string DeviceID;
         public static string JSONPostUrl;
+        public static string MQTTUrl;
+        public static string MQTTtopic;
+        public static string MQTTuser;
+        public static string MQTTpassw;
+
 
         static void Main(string[] args)
         {
@@ -52,9 +57,12 @@ namespace VSCaptureMP
                 Console.WriteLine("-port <Set IP address or serial port>");
                 Console.WriteLine("-interval <Set numeric transmission interval option>");
                 Console.WriteLine("-waveset <Set waveform request priority option>");
-                Console.WriteLine("-export <Set data export CSV or JSON option>");
-                Console.WriteLine("-devid <Set device ID for JSON export>");
-                Console.WriteLine("-url <Set JSON export url>");
+                Console.WriteLine("-export <Set data export CSV, MQTT or JSON option>");
+                Console.WriteLine("-devid <Set device ID for MQTT or JSON export>");
+                Console.WriteLine("-url <Set MQTT or JSON export url>");
+                Console.WriteLine("-topic <Set topic for MQTT export>");
+                Console.WriteLine("-user <Set username for MQTT export>");
+                Console.WriteLine("-passw <Set password for MQTT export>");
                 Console.WriteLine("-scale <Set waveform data scale or calibrate option>");
 
                 Console.WriteLine();
@@ -212,8 +220,9 @@ namespace VSCaptureMP
                 Console.WriteLine("Data export options:");
                 Console.WriteLine("1. Export as CSV files");
                 Console.WriteLine("2. Export as CSV files and JSON to URL");
+                Console.WriteLine("3. Export as MQTT to URL");
                 Console.WriteLine();
-                Console.Write("Choose data export option (1-2):");
+                Console.Write("Choose data export option (1-3):");
 
                 sDataExportset = Console.ReadLine();
 
@@ -243,6 +252,65 @@ namespace VSCaptureMP
                 {
                     Console.Write("Enter JSON Data Export URL(http://):");
                     JSONPostUrl = Console.ReadLine();
+
+                }
+
+            }
+
+            if (nDataExportset == 3)
+            {
+                if (parser.Arguments.ContainsKey("devid"))
+                {
+                    DeviceID = parser.Arguments["devid"][0];
+                }
+                else
+                {
+                    Console.Write("Enter Device ID/Name:");
+                    DeviceID = Console.ReadLine();
+
+                }
+
+                if (parser.Arguments.ContainsKey("url"))
+                {
+                    MQTTUrl = parser.Arguments["url"][0];
+                }
+                else
+                {
+                    Console.Write("Enter MQTT WebSocket Server URL(ws://):");
+                    MQTTUrl = Console.ReadLine();
+
+                }
+
+                if (parser.Arguments.ContainsKey("topic"))
+                {
+                    MQTTtopic = parser.Arguments["topic"][0];
+                }
+                else
+                {
+                    Console.Write("Enter MQTT Topic:");
+                    MQTTtopic = Console.ReadLine();
+
+                }
+
+                if (parser.Arguments.ContainsKey("user"))
+                {
+                    MQTTuser = parser.Arguments["user"][0];
+                }
+                else
+                {
+                    Console.Write("Enter MQTT Username:");
+                    MQTTuser = Console.ReadLine();
+
+                }
+
+                if (parser.Arguments.ContainsKey("passw"))
+                {
+                    MQTTpassw = parser.Arguments["passw"][0];
+                }
+                else
+                {
+                    Console.Write("Enter MQTT Password:");
+                    MQTTpassw = Console.ReadLine();
 
                 }
 
@@ -338,7 +406,7 @@ namespace VSCaptureMP
             Console.WriteLine();
             Console.WriteLine("Press Escape button to Stop");
 
-            if (nDataExportset > 0 && nDataExportset < 3) _MPudpclient.m_dataexportset = nDataExportset;
+            if (nDataExportset > 0 && nDataExportset < 4) _MPudpclient.m_dataexportset = nDataExportset;
 
             if (nCSVset > 0 && nCSVset < 4) _MPudpclient.m_csvexportset = nCSVset;
 
@@ -352,6 +420,11 @@ namespace VSCaptureMP
 
                 _MPudpclient.m_DeviceID = DeviceID;
                 _MPudpclient.m_jsonposturl = JSONPostUrl;
+                _MPudpclient.m_MQTTUrl = MQTTUrl;
+                _MPudpclient.m_MQTTtopic = MQTTtopic;
+                _MPudpclient.m_MQTTuser = MQTTuser;
+                _MPudpclient.m_MQTTpassw = MQTTpassw;
+
 
                 try
                 {
@@ -520,8 +593,9 @@ namespace VSCaptureMP
                     Console.WriteLine("Data export options:");
                     Console.WriteLine("1. Export as CSV files");
                     Console.WriteLine("2. Export as CSV files and JSON to URL");
+                    Console.WriteLine("3. Export as MQTT to URL");
                     Console.WriteLine();
-                    Console.Write("Choose data export option (1-2):");
+                    Console.Write("Choose data export option (1-3):");
 
                     sDataExportset = Console.ReadLine();
 
@@ -555,10 +629,73 @@ namespace VSCaptureMP
                     }
 
                 }
+
+                if (nDataExportset == 3)
+                {
+                    if (parser.Arguments.ContainsKey("devid"))
+                    {
+                        DeviceID = parser.Arguments["devid"][0];
+                    }
+                    else
+                    {
+                        Console.Write("Enter Device ID/Name:");
+                        DeviceID = Console.ReadLine();
+
+                    }
+
+                    if (parser.Arguments.ContainsKey("url"))
+                    {
+                        MQTTUrl = parser.Arguments["url"][0];
+                    }
+                    else
+                    {
+                        Console.Write("Enter MQTT WebSocket Server URL(ws://):");
+                        MQTTUrl = Console.ReadLine();
+
+                    }
+
+                    if (parser.Arguments.ContainsKey("topic"))
+                    {
+                        MQTTtopic = parser.Arguments["topic"][0];
+                    }
+                    else
+                    {
+                        Console.Write("Enter MQTT Topic:");
+                        MQTTtopic = Console.ReadLine();
+
+                    }
+
+                    if (parser.Arguments.ContainsKey("user"))
+                    {
+                        MQTTuser = parser.Arguments["user"][0];
+                    }
+                    else
+                    {
+                        Console.Write("Enter MQTT Username:");
+                        MQTTuser = Console.ReadLine();
+
+                    }
+
+                    if (parser.Arguments.ContainsKey("passw"))
+                    {
+                        MQTTpassw = parser.Arguments["passw"][0];
+                    }
+                    else
+                    {
+                        Console.Write("Enter MQTT Password:");
+                        MQTTpassw = Console.ReadLine();
+
+                    }
+
+                }
                 _serialPort.m_DeviceID = DeviceID;
                 _serialPort.m_jsonposturl = JSONPostUrl;
+                _serialPort.m_MQTTUrl = MQTTUrl;
+                _serialPort.m_MQTTtopic = MQTTtopic;
+                _serialPort.m_MQTTuser = MQTTuser;
+                _serialPort.m_MQTTpassw = MQTTpassw;
 
-                if (nDataExportset > 0 && nDataExportset < 3) _serialPort.m_dataexportset = nDataExportset;
+                if (nDataExportset > 0 && nDataExportset < 4) _serialPort.m_dataexportset = nDataExportset;
 
                 /*Console.WriteLine();
                 Console.WriteLine("CSV Data Export Options:");
@@ -756,9 +893,14 @@ namespace VSCaptureMP
                 {
                     if (arg.StartsWith("-", StringComparison.InvariantCulture))
                     {
-                        if (currentName != "")
+                        if (currentName != "" && values.Count != 0)
                             Arguments[currentName] = values.ToArray();
 
+                        else
+                        {
+                            values.Add("");
+                            Arguments[currentName] = values.ToArray();
+                        }
                         values.Clear();
                         currentName = arg.Substring(1);
                     }

@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.008.
+ * This file is part of VitalSignsCaptureMP v1.009.
  * Copyright (C) 2017-21 John George K., xeonfusion@users.sourceforge.net
  * Portions of code (C) 2015 Richard L. Grier
  
