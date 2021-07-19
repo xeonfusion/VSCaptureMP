@@ -976,6 +976,8 @@ namespace VSCaptureMP
                     ExportDataToCSV();
                     ExportWaveToCSV();
                 }
+                //clear memory
+                m_WaveValResultList.RemoveRange(0, m_WaveValResultList.Count);
             }
 
         }
