@@ -1,2 +1,0 @@
-C:/Users/John/Documents/Philips connect/VSCaptureMP/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe.config
-C:/Users/John/Documents/Philips connect/VSCaptureMPWave/VSCaptureMP/VSCaptureMP/bin/Debug/VSCaptureMP.exe.config
