@@ -1265,7 +1265,7 @@ namespace VSCaptureMP
             //string physio_id = NumObjectValue.physio_id.ToString();
             string physio_id = Enum.GetName(typeof(IntelliVue.AlertSource), NumObjectValue.physio_id);
 
-            if (physio_id == "NOM_METRIC_NOS" || physio_id == "")
+            if (physio_id == "NOM_METRIC_NOS" || physio_id == null)
             {
                 IDLabel cIDLabel = new IDLabel();
                 cIDLabel = m_IDLabelList.Find(x => x.obpoll_handle == m_obpollhandle);
@@ -1386,7 +1386,7 @@ namespace VSCaptureMP
 
             string physio_id = Enum.GetName(typeof(IntelliVue.AlertSource), WaveSaObjectValue.physio_id);
 
-            if (physio_id == "NOM_METRIC_NOS" || physio_id == "")
+            if (physio_id == "NOM_METRIC_NOS" || physio_id == null)
             {
                IDLabel cIDLabel = new IDLabel();
                cIDLabel = m_IDLabelList.Find(x => x.obpoll_handle == m_obpollhandle);
