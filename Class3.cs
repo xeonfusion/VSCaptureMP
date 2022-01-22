@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.010.
+ * This file is part of VitalSignsCaptureMP v1.011.
  * Copyright (C) 2017-22 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -134,10 +134,13 @@ namespace VSCaptureMP
         public int m_csvexportset = 1;
         public List<SaSpec> m_SaSpecList = new List<SaSpec>();
         public List<SaCalibData16> m_SaCalibDataSpecList = new List<SaCalibData16>();
+        public List<ScaleRangeSpec16> m_ScaleRangeSpecList = new List<ScaleRangeSpec16>();
+        public List<IDLabel> m_IDLabelList = new List<IDLabel>();
         public bool m_calibratewavevalues = false;
 
         public ushort m_obpollhandle = 0;
         public uint m_idlabelhandle = 0;
+        public string m_idlabelstring;
         public DateTime m_baseDateTime = new DateTime();
         public DateTime m_pollDateTime = new DateTime();
         public uint m_baseRelativeTime = 0;
@@ -173,6 +176,14 @@ namespace VSCaptureMP
             public ushort obpoll_handle;
             public SaSpec saSpecData = new SaSpec();
             public SaCalibData16 saCalibData = new SaCalibData16();
+            public ScaleRangeSpec16 ScaleRangeSpec16 = new ScaleRangeSpec16();
+        }
+
+        public class IDLabel
+        {
+            public uint idlabelhandle;
+            public string idlabelstring;
+            public ushort obpoll_handle;
         }
 
         //Create a singleton serialport subclass
@@ -596,6 +607,14 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_INTRA_CRAN_2")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_PRESS_BLD_VEN_CENT")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_TEMP_BLD")))));
+                    break;
+                case 10:
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x04))); //count
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x10))); //length
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_VUELINK_FLX1_NPS_TEXT_WAVE1")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_VUELINK_FLX1_NPS_TEXT_WAVE2")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_VUELINK_FLX1_NPS_TEXT_WAVE3")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_VUELINK_FLX1_NPS_TEXT_WAVE4")))));
                     break;
             }
         }
@@ -1069,7 +1088,7 @@ namespace VSCaptureMP
                         ReadSaSpecifications(avaattribobjects);
                         break;
                     case DataConstants.NOM_ATTR_SCALE_SPECN_I16:
-                        //ReadSaScaleSpecifications(avaattribobjects);
+                        ReadSaScaleSpecifications(avaattribobjects);
                         break;
                     case DataConstants.NOM_ATTR_SA_CALIB_I16:
                         ReadSaCalibrationSpecifications(avaattribobjects);
@@ -1201,7 +1220,33 @@ namespace VSCaptureMP
             byte[] stringval = binreader5.ReadBytes(strmp.length);
 
             string label = Encoding.UTF8.GetString(stringval);
-            Console.WriteLine("Label String: {0}", label);
+
+            m_idlabelstring = label.Replace("\0", string.Empty).Trim();
+            Console.WriteLine("Label String: {0}", m_idlabelstring);
+
+            AddIDLabelToList();
+        }
+
+        public void AddIDLabelToList()
+        {
+            IDLabel cIDLabel = new IDLabel();
+            
+            cIDLabel.obpoll_handle = m_obpollhandle;
+            cIDLabel.idlabelhandle = m_idlabelhandle;
+            cIDLabel.idlabelstring = m_idlabelstring;
+
+            //Add to a list of ID Labels if it's not already present
+
+            int idlistindex = m_IDLabelList.FindIndex(x => x.obpoll_handle == cIDLabel.obpoll_handle);
+            if (idlistindex == -1)
+            {
+                m_IDLabelList.Add(cIDLabel);
+            }
+            else
+            {
+                m_IDLabelList.RemoveAt(idlistindex);
+                m_IDLabelList.Add(cIDLabel);
+            }
         }
 
         public void ReadNumericObservationValue(byte[] avaattribobjects)
@@ -1219,6 +1264,13 @@ namespace VSCaptureMP
 
             //string physio_id = NumObjectValue.physio_id.ToString();
             string physio_id = Enum.GetName(typeof(IntelliVue.AlertSource), NumObjectValue.physio_id);
+
+            if (physio_id == "NOM_METRIC_NOS" || physio_id == "")
+            {
+                IDLabel cIDLabel = new IDLabel();
+                cIDLabel = m_IDLabelList.Find(x => x.obpoll_handle == m_obpollhandle);
+                if (cIDLabel != null) physio_id = cIDLabel.idlabelstring;
+            }
 
             string state = NumObjectValue.state.ToString();
             string unit_code = NumObjectValue.unit_code.ToString();
@@ -1245,6 +1297,7 @@ namespace VSCaptureMP
             //NumVal.Timestamp = DateTime.Now.ToString();
 
             DateTime dtSystemDateTime = DateTime.Now;
+
             string strSystemLocalDateTime = dtSystemDateTime.ToString("dd-MM-yyyy HH:mm:ss.fff", CultureInfo.InvariantCulture);
             NumVal.SystemLocalTime = strSystemLocalDateTime;
 
@@ -1333,6 +1386,13 @@ namespace VSCaptureMP
 
             string physio_id = Enum.GetName(typeof(IntelliVue.AlertSource), WaveSaObjectValue.physio_id);
 
+            if (physio_id == "NOM_METRIC_NOS" || physio_id == "")
+            {
+               IDLabel cIDLabel = new IDLabel();
+               cIDLabel = m_IDLabelList.Find(x => x.obpoll_handle == m_obpollhandle);
+               if (cIDLabel != null) physio_id = cIDLabel.idlabelstring;
+            }
+
             WaveValResult WaveVal = new WaveValResult();
             WaveVal.Relativetimestamp = m_strTimestamp;
 
@@ -1354,7 +1414,10 @@ namespace VSCaptureMP
             WaveVal.obpoll_handle = m_obpollhandle;
             ushort physio_id_handle = WaveSaObjectValue.physio_id;
 
-            WaveVal.saCalibData = m_SaCalibDataSpecList.Find(x => x.physio_id == physio_id_handle);
+            //WaveVal.saCalibData = m_SaCalibDataSpecList.Find(x => x.physio_id == physio_id_handle);
+            WaveVal.saCalibData = m_SaCalibDataSpecList.Find(x => x.obpoll_handle == m_obpollhandle);
+            WaveVal.ScaleRangeSpec16 = m_ScaleRangeSpecList.Find(x => x.obpoll_handle == m_obpollhandle);
+           
             if (WaveVal.saCalibData == null)
             {
                 WaveVal.saCalibData = new SaCalibData16();
@@ -1390,6 +1453,14 @@ namespace VSCaptureMP
                     WaveVal.saCalibData.lower_scaled_value = 0x04ce;
                     WaveVal.saCalibData.upper_scaled_value = 0x0b33;
                 }
+                /*else if(physio_id_handle == 0xF001)
+                {
+                    //use default values for custom
+                    WaveVal.saCalibData.lower_absolute_value = 0;
+                    WaveVal.saCalibData.upper_absolute_value = 15;
+                    WaveVal.saCalibData.lower_scaled_value = 0x0000;
+                    WaveVal.saCalibData.upper_scaled_value = 0x0fff;
+                }*/
                 else WaveVal.saCalibData = null;
 
             }
@@ -1483,6 +1554,19 @@ namespace VSCaptureMP
 
             ScaleSpec.obpoll_handle = m_obpollhandle;
             ScaleSpec.physio_id = Get16bitLSBfromUInt(m_idlabelhandle);
+
+            //Add to a list of Sample array scale range specification definitions if it's not already present
+            int salistindex = m_ScaleRangeSpecList.FindIndex(x => x.obpoll_handle == ScaleSpec.obpoll_handle);
+
+            if (salistindex == -1)
+            {
+                m_ScaleRangeSpecList.Add(ScaleSpec);
+            }
+            else
+            {
+                m_ScaleRangeSpecList.RemoveAt(salistindex);
+                m_ScaleRangeSpecList.Add(ScaleSpec);
+            }
         }
 
         public void ReadSaCalibrationSpecifications(byte[] avaattribobjects)
@@ -1835,6 +1919,8 @@ namespace VSCaptureMP
                         if (WavValResult.saSpecData.SaFlags != 0x2000 && m_calibratewavevalues == true)
                         {
                             Waveval = CalibrateSaValue(Waveval, WavValResult.saCalibData);
+                            //Using scale and range outputs different values
+                            //Waveval = ScaleRangeSaValue(Waveval, WavValResult.ScaleRangeSpec16);
                         }
 
                         index = index + 1;
@@ -1894,6 +1980,40 @@ namespace VSCaptureMP
                     if (sacalibdata.upper_absolute_value != sacalibdata.lower_absolute_value)
                     {
                         value = sacalibdata.lower_absolute_value + (prop * (sacalibdata.upper_absolute_value - sacalibdata.lower_absolute_value));
+                        value = Math.Round(value, 2);
+                    }
+
+                    Wavevalue = value;
+                    return Wavevalue;
+                }
+                else return Waveval;
+
+            }
+            else return Waveval;
+        }
+
+        public double ScaleRangeSaValue(double Waveval, ScaleRangeSpec16 sascaledata)
+        {
+            if (!double.IsNaN(Waveval))
+            {
+                if (sascaledata != null)
+                {
+                    double prop = 0;
+                    double value = 0;
+                    double Wavevalue = Waveval;
+
+                    //Check if value is out of range
+                    if (Waveval > sascaledata.upper_scaled_value) Waveval = sascaledata.upper_scaled_value;
+                    if (Waveval < sascaledata.lower_scaled_value) Waveval = sascaledata.lower_scaled_value;
+
+                    //Get proportion from scaled values
+                    if (sascaledata.upper_scaled_value != sascaledata.lower_scaled_value)
+                    {
+                        prop = (Waveval - sascaledata.lower_scaled_value) / (sascaledata.upper_scaled_value - sascaledata.lower_scaled_value);
+                    }
+                    if (sascaledata.upper_absolute_value != sascaledata.lower_absolute_value)
+                    {
+                        value = sascaledata.lower_absolute_value + (prop * (sascaledata.upper_absolute_value - sascaledata.lower_absolute_value));
                         value = Math.Round(value, 2);
                     }
 

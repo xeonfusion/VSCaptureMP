@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.010.
+ * This file is part of VitalSignsCaptureMP v1.011.
  * Copyright (C) 2017-22 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
@@ -347,11 +347,12 @@ namespace VSCaptureMP
                 Console.WriteLine("7. ABP, ART IBP");
                 Console.WriteLine("8. Compound ECG, PLETH, ABP, ART IBP, CVP, CO2");
                 Console.WriteLine("9. ECG II, ART IBP, ICP, ICP2, CVP, TEMP BLOOD");
-                Console.WriteLine("10. All");
+                Console.WriteLine("10. Vuelink/IntelliBridge Wave1, Wave2, Wave3, Wave4");
+                Console.WriteLine("11. All");
 
                 Console.WriteLine();
                 Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
-                Console.Write("Choose Waveform data export priority option (0-10):");
+                Console.Write("Choose Waveform data export priority option (0-11):");
 
                 sWaveformSet = Console.ReadLine();
 
@@ -462,7 +463,7 @@ namespace VSCaptureMP
                     if (nWaveformSet != 0)
                     {
                         _MPudpclient.GetRTSAPriorityListRequest();
-                        if (nWaveformSet != 10)
+                        if (nWaveformSet != 11)
                         {
                             _MPudpclient.SetRTSAPriorityList(nWaveformSet);
                         }
@@ -728,11 +729,12 @@ namespace VSCaptureMP
                     Console.WriteLine("7. ABP, ART IBP");
                     Console.WriteLine("8. Compound ECG, PLETH, ABP, ART IBP, CVP, CO2");
                     Console.WriteLine("9. ECG II, ART IBP, ICP, ICP2, CVP, TEMP BLOOD");
-                    Console.WriteLine("10. All");
+                    Console.WriteLine("10. Vuelink/IntelliBridge Wave1, Wave2, Wave3, Wave4");
+                    Console.WriteLine("11. All");
 
                     Console.WriteLine();
                     Console.WriteLine("Selecting all waves can lead to data loss due to bandwidth issues");
-                    Console.Write("Choose Waveform data export priority option (0-10):");
+                    Console.Write("Choose Waveform data export priority option (0-11):");
 
                     sWaveformSet = Console.ReadLine();
 
@@ -785,7 +787,7 @@ namespace VSCaptureMP
                 if (nWaveformSet != 0)
                 {
                     _serialPort.GetRTSAPriorityListRequest();
-                    if (nWaveformSet != 10)
+                    if (nWaveformSet != 11)
                     {
                         _serialPort.SetRTSAPriorityList(nWaveformSet);
                     }

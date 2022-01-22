@@ -1,5 +1,5 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.010.
+ * This file is part of VitalSignsCaptureMP v1.011.
  * Copyright (C) 2017-22 John George K., xeonfusion@users.sourceforge.net
  * Portions of code (C) 2015 Richard L. Grier
  
@@ -2800,6 +2800,8 @@ namespace VSCaptureMP
         public const ushort NOM_MOC_VMS_MDS = 33;
         //MDS
         public const int NOM_ATTR_METRIC_SPECN = 2367;
+        public const int NOM_ATTR_METRIC_INFO_LABEL = 0x93c;
+        public const int NOM_ATTR_METRIC_INFO_LABEL_STR = 0x93d;
         public const int NOM_ATTR_ID_HANDLE = 2337;
         public const int NOM_ATTR_ID_LABEL = 2340;
         public const int NOM_ATTR_ID_LABEL_STRING = 2343;
@@ -2880,7 +2882,15 @@ namespace VSCaptureMP
             NLS_EEG_NAMES_EEG_CHAN4_LBL = 0x800F5434,
             NLS_NOM_PRESS_INTRA_CRAN = 0x00025808,
             NLS_NOM_PRESS_INTRA_CRAN_2 = 0x0002F0B8,
-            NLS_NOM_TEMP_BLD = 0x0002E014
+            NLS_NOM_TEMP_BLD = 0x0002E014,
+            NLS_VUELINK_FLX1_NPS_TEXT_WAVE1 = 0x80AAF001,
+            NLS_VUELINK_FLX1_NPS_TEXT_WAVE2 = 0x80AAF003,
+            NLS_VUELINK_FLX1_NPS_TEXT_WAVE3 = 0x80AAF005,
+            NLS_VUELINK_FLX1_NPS_TEXT_WAVE4 = 0x80AAF007,
+            NLS_VUELINK_FLX1_NPS_TEXT_WAVE5 = 0x80AAF009,
+            NLS_VUELINK_FLX1_NPS_TEXT_WAVE6 = 0x80AAF00B,
+            NLS_VUELINK_FLX1_NPS_TEXT_WAVE7 = 0x80AAF00D,
+            NLS_VUELINK_FLX1_NPS_TEXT_WAVE8 = 0x80AAF00F
 
         }
     }
