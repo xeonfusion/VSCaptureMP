@@ -1278,7 +1278,7 @@ namespace VSCaptureMP
             string valuestr;
             if (value != DataConstants.FLOATTYPE_NAN)
             {
-                valuestr = value.ToString();
+                valuestr = String.Format("{0:0.##}", value);
             }
             else valuestr = "-";
 
