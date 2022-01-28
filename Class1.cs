@@ -937,7 +937,6 @@ namespace VSCaptureMP
 
             double value = FloattypeToValue(NumObjectValue.value);
 
-            //string physio_id = NumObjectValue.physio_id.ToString();
             string physio_id = Enum.GetName(typeof(IntelliVue.AlertSource), NumObjectValue.physio_id);
 
             if (physio_id == "NOM_METRIC_NOS" || physio_id == null)
@@ -1088,46 +1087,37 @@ namespace VSCaptureMP
             WaveVal.obpoll_handle = m_obpollhandle;
             ushort physio_id_handle = WaveSaObjectValue.physio_id;
 
-            //WaveVal.saCalibData = m_SaCalibDataSpecList.Find(x => x.physio_id == physio_id_handle);
-            WaveVal.saCalibData = m_SaCalibDataSpecList.Find(x => x.obpoll_handle == m_obpollhandle);
-            WaveVal.ScaleRangeSpec16 = m_ScaleRangeSpecList.Find(x => x.obpoll_handle == m_obpollhandle);
+            WaveVal.saCalibData = m_SaCalibDataSpecList.Find(x => x.obpoll_handle == m_obpollhandle); //optional
+            WaveVal.ScaleRangeSpec16 = m_ScaleRangeSpecList.Find(x => x.obpoll_handle == m_obpollhandle); //mandatory
            
-            if (WaveVal.saCalibData == null)
+            if (WaveVal.ScaleRangeSpec16 == null)
             {
-                WaveVal.saCalibData = new SaCalibData16();
-                if (physio_id_handle == 0x107)
+                WaveVal.ScaleRangeSpec16 = new ScaleRangeSpec16();
+                if (physio_id_handle == 0x100)
                 {
-                    //use default values for ecg II
-                    WaveVal.saCalibData.lower_absolute_value = 0;
-                    WaveVal.saCalibData.upper_absolute_value = 1;
-                    WaveVal.saCalibData.lower_scaled_value = 0x1fe7;
-                    WaveVal.saCalibData.upper_scaled_value = 0x20af;
-                }
-                else if (physio_id_handle == 0x102)
-                {
-                    //use default values for ecg V5
-                    WaveVal.saCalibData.lower_absolute_value = 0;
-                    WaveVal.saCalibData.upper_absolute_value = 1;
-                    WaveVal.saCalibData.lower_scaled_value = 0x1fd4;
-                    WaveVal.saCalibData.upper_scaled_value = 0x209c;
+                    //use default values for ecg
+                    WaveVal.saCalibData.lower_absolute_value = -40.96;
+                    WaveVal.saCalibData.upper_absolute_value = 40.955;
+                    WaveVal.saCalibData.lower_scaled_value = 0x0000;
+                    WaveVal.saCalibData.upper_scaled_value = 0x3fff;
                 }
                 else if (physio_id_handle == 0x4A10)
                 {
                     //use default values for art ibp
-                    WaveVal.saCalibData.lower_absolute_value = 0;
-                    WaveVal.saCalibData.upper_absolute_value = 150;
-                    WaveVal.saCalibData.lower_scaled_value = 0x0320;
-                    WaveVal.saCalibData.upper_scaled_value = 0x0c80;
+                    WaveVal.ScaleRangeSpec16.lower_absolute_value = -40;
+                    WaveVal.ScaleRangeSpec16.upper_absolute_value = 520;
+                    WaveVal.ScaleRangeSpec16.lower_scaled_value = 0x00a0;
+                    WaveVal.ScaleRangeSpec16.upper_scaled_value = 0x23a0;
                 }
                 else if (physio_id_handle == 0x5000)
                 {
                     //use default values for resp
-                    WaveVal.saCalibData.lower_absolute_value = 0;
-                    WaveVal.saCalibData.upper_absolute_value = 1;
-                    WaveVal.saCalibData.lower_scaled_value = 0x04ce;
-                    WaveVal.saCalibData.upper_scaled_value = 0x0b33;
+                    WaveVal.ScaleRangeSpec16.lower_absolute_value = -0.6;
+                    WaveVal.ScaleRangeSpec16.upper_absolute_value = 1.9;
+                    WaveVal.ScaleRangeSpec16.lower_scaled_value = 0x0000;
+                    WaveVal.ScaleRangeSpec16.upper_scaled_value = 0x0fff;
                 }
-                /*else if(physio_id_handle == 0xF001)
+                /*else if (physio_id_handle == 0xF001)
                 {
                     //use default values for custom
                     WaveVal.saCalibData.lower_absolute_value = 0;
@@ -1135,7 +1125,8 @@ namespace VSCaptureMP
                     WaveVal.saCalibData.lower_scaled_value = 0x0000;
                     WaveVal.saCalibData.upper_scaled_value = 0x0fff;
                 }*/
-                else WaveVal.saCalibData = null;
+                else WaveVal.ScaleRangeSpec16 = null;
+
             }
 
             WaveVal.Value = new byte[wavevalobjectslength];
@@ -1262,7 +1253,7 @@ namespace VSCaptureMP
             SaCalibData.physio_id = Get16bitLSBfromUInt(m_idlabelhandle);
 
             //Add to a list of Sample array calibration specification definitions if it's not already present
-            int salistindex = m_SaCalibDataSpecList.FindIndex(x => x.physio_id == SaCalibData.physio_id);
+            int salistindex = m_SaCalibDataSpecList.FindIndex(x => x.obpoll_handle == SaCalibData.obpoll_handle);
 
             if (salistindex == -1)
             {
@@ -1588,9 +1579,9 @@ namespace VSCaptureMP
 
                         if (WavValResult.saSpecData.SaFlags != 0x2000 && m_calibratewavevalues == true)
                         {
-                            Waveval = CalibrateSaValue(Waveval, WavValResult.saCalibData);
-                            //Using scale and range outputs different values
-                            //Waveval = ScaleRangeSaValue(Waveval, WavValResult.ScaleRangeSpec16);
+                            //Waveval = CalibrateSaValue(Waveval, WavValResult.saCalibData);
+                            //Using scale and range specification by default, values are different from optional SaCalibData
+                            Waveval = ScaleRangeSaValue(Waveval, WavValResult.ScaleRangeSpec16);
                         }
 
                         index = index + 1;
@@ -1652,6 +1643,7 @@ namespace VSCaptureMP
                         value = sacalibdata.lower_absolute_value + (prop * (sacalibdata.upper_absolute_value - sacalibdata.lower_absolute_value));
                         value = Math.Round(value, 2);
                     }
+                    else return Waveval; //if upper and lower absolute value is NaN
 
                     Wavevalue = value;
                     return Wavevalue;
@@ -1686,6 +1678,7 @@ namespace VSCaptureMP
                         value = sascaledata.lower_absolute_value + (prop * (sascaledata.upper_absolute_value - sascaledata.lower_absolute_value));
                         value = Math.Round(value, 2);
                     }
+                    else return Waveval; //if upper and lower absolute value is NaN
 
                     Wavevalue = value;
                     return Wavevalue;
