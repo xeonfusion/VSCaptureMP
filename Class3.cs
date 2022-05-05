@@ -668,7 +668,7 @@ namespace VSCaptureMP
 
         public async Task SendCycledExtendedPollWaveDataRequest(int nInterval)
         {
-            int nmillisecond = nInterval * 1000;
+            int nmillisecond = nInterval ;
             if (nmillisecond != 0)
             {
                 do
