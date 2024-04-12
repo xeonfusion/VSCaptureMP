@@ -1,6 +1,6 @@
 ﻿/*
- * This file is part of VitalSignsCaptureMP v1.011.
- * Copyright (C) 2017-22 John George K., xeonfusion@users.sourceforge.net
+ * This file is part of VitalSignsCaptureMP v1.012.
+ * Copyright (C) 2017-24 John George K., xeonfusion@users.sourceforge.net
 
     VitalSignsCaptureMP is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -29,10 +29,11 @@ using System.Net.Http;
 using System.Text.Json;
 
 using MQTTnet;
-using MQTTnet.Client.Options;
+using MQTTnet.Client;
+//using MQTTnet.Client.Options;
 using MQTTnet.Extensions.ManagedClient;
-using MQTTnet.Client.Connecting;
-using MQTTnet.Diagnostics;
+//using MQTTnet.Client.Connecting;
+//using MQTTnet.Diagnostics;
 
 namespace VSCaptureMP
 {
@@ -616,6 +617,14 @@ namespace VSCaptureMP
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_VUELINK_FLX1_NPS_TEXT_WAVE3")))));
                     WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_VUELINK_FLX1_NPS_TEXT_WAVE4")))));
                     break;
+                case 11:
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x04))); //count
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianshortus(0x10))); //length
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_EEG_ELEC_POTL_CRTX")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_EEG_ELEC_POTL_CRTX_LEFT")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_EEG_ELEC_POTL_CRTX_RIGHT")))));
+                    WaveTrtype.AddRange(BitConverter.GetBytes(correctendianuint((uint)(Enum.Parse(typeof(DataConstants.WavesIDLabels), "NLS_NOM_ECG_ELEC_POTL_II")))));
+                    break;
             }
         }
 
@@ -668,7 +677,7 @@ namespace VSCaptureMP
 
         public async Task SendCycledExtendedPollWaveDataRequest(int nInterval)
         {
-            int nmillisecond = nInterval ;
+            int nmillisecond = nInterval;
             if (nmillisecond != 0)
             {
                 do
@@ -1922,7 +1931,7 @@ namespace VSCaptureMP
                             m_strbuildwavevalues.Append(',');
                             m_strbuildwavevalues.Append(WavValResult.SystemLocalTime);
                             m_strbuildwavevalues.Append(',');
-                            m_strbuildwavevalues.Append(Waveval.ToString());
+                            m_strbuildwavevalues.Append(Waveval.ToString(CultureInfo.InvariantCulture));
                             m_strbuildwavevalues.Append(',');
                             m_strbuildwavevalues.AppendLine();
                         }
@@ -2121,8 +2130,9 @@ namespace VSCaptureMP
 
             var mqttClient = new MqttFactory().CreateMqttClient();
             var logger = new MqttFactory().DefaultLogger;
-            //var managedClient = new ManagedMqttClient(mqttClient, IMqttNetLogger);
             var managedClient = new ManagedMqttClient(mqttClient, logger);
+
+            var topic = m_MQTTtopic + string.Format("/{0}", datatype);
 
             try
             {
@@ -2132,6 +2142,8 @@ namespace VSCaptureMP
                     await ConnectMQTTAsync(managedClient, token, m_MQTTUrl, m_MQTTclientId, m_MQTTuser, m_MQTTpassw);
                     await connected;
 
+                    //await PublishMQTTAsync(managedClient, token, topic, serializedJSON);
+                    //await managedClient.StopAsync();
                 });
 
                 task.ContinueWith(antecedent => {
@@ -2139,21 +2151,32 @@ namespace VSCaptureMP
                     {
                         Task.Run(async () =>
                         {
-                            await PublishMQTTAsync(managedClient, token, m_MQTTtopic, serializedJSON);
+                            await PublishMQTTAsync(managedClient, token, topic, serializedJSON);
                             await managedClient.StopAsync();
                         });
                     }
                 });
 
-                //ConnectMQTTAsync(m_mqttClient, token, m_MQTTUrl, m_MQTTclientId, m_MQTTuser, m_MQTTpassw).Wait();
-                //m_MQTTtopic = String.Format("/VSCapture/{0}/numericdata/", m_DeviceID);
-                //PublishMQTTAsync(m_mqttClient, token, m_MQTTtopic, serializedJSON).Wait();
             }
 
             catch (Exception _Exception)
             {
                 Console.WriteLine("Exception caught in process: {0}", _Exception.ToString());
             }
+
+        }
+
+        Task GetConnectedTask(ManagedMqttClient managedClient)
+        {
+            TaskCompletionSource<bool> connected = new TaskCompletionSource<bool>();
+            managedClient.ConnectedAsync += (MqttClientConnectedEventArgs arg) => {
+
+                connected.SetResult(true);
+                //Console.WriteLine("MQTT Client connected");
+                return Task.CompletedTask;
+            };
+
+            return connected.Task;
 
         }
 
@@ -2164,48 +2187,41 @@ namespace VSCaptureMP
             var messageBuilder = new MqttClientOptionsBuilder()
             .WithClientId(clientId)
             .WithCredentials(mqttuser, mqttpassw)
-            .WithCommunicationTimeout(new TimeSpan(0, 0, 5))
-            .WithKeepAlivePeriod(TimeSpan.FromSeconds(1200))
-            .WithWebSocketServer(mqtturl)
-            .WithCleanSession();
+            .WithCleanSession()
+            .WithWebSocketServer((MqttClientWebSocketOptionsBuilder b) =>
+            {
+                b.WithUri(mqtturl);
+            });
+
+            var tlsOptions = new MqttClientTlsOptionsBuilder()
+               .WithSslProtocols(System.Security.Authentication.SslProtocols.Tls12)
+               .Build();
 
             var options = mqttSecure
             ? messageBuilder
-                .WithTls()
+            .WithTlsOptions(tlsOptions)
                 .Build()
             : messageBuilder
                 .Build();
 
             var managedOptions = new ManagedMqttClientOptionsBuilder()
-              .WithAutoReconnectDelay(TimeSpan.FromSeconds(5))
+              .WithAutoReconnectDelay(TimeSpan.FromSeconds(1))
               .WithClientOptions(options)
               .Build();
 
             await mqttClient.StartAsync(managedOptions);
-        }
 
-        Task GetConnectedTask(ManagedMqttClient managedClient)
-        {
-            TaskCompletionSource<bool> connected = new TaskCompletionSource<bool>();
-            managedClient.ConnectedHandler = new MqttClientConnectedHandlerDelegate(e =>
-            {
-                managedClient.ConnectedHandler = null;
-                connected.SetResult(true);
-            });
-            return connected.Task;
         }
 
         public static async Task PublishMQTTAsync(ManagedMqttClient mqttClient, CancellationToken token, string topic, string payload, bool retainFlag = true, int qos = 1)
         {
-            if (mqttClient.IsConnected)
-            {
-                await mqttClient.PublishAsync(new MqttApplicationMessageBuilder()
-                 .WithTopic(topic)
-                 .WithPayload(payload)
-                 .WithQualityOfServiceLevel((MQTTnet.Protocol.MqttQualityOfServiceLevel)qos)
-                 .WithRetainFlag(retainFlag)
-                 .Build(), token);
-            }
+            await mqttClient.EnqueueAsync(topic, payload, (MQTTnet.Protocol.MqttQualityOfServiceLevel)qos, retainFlag);
+            //Console.WriteLine("The managed MQTT client is connected, publishing data.");
+
+            // Wait until the queue is fully processed.
+            SpinWait.SpinUntil(() => mqttClient.PendingApplicationMessagesCount == 0, 5000);
+            //Console.WriteLine($"Pending messages = {mqttClient.PendingApplicationMessagesCount}");
+
         }
 
         public void StopTransfer()
