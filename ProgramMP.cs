@@ -191,7 +191,7 @@ namespace VSCaptureMP
                 Console.WriteLine();
                 Console.WriteLine("Numeric Data Transmission sets:");
                 Console.WriteLine("1. 1 second (Real time)");
-                Console.WriteLine("2. 12 second (Averaged)");
+                Console.WriteLine("2. 10 second (Averaged)");
                 Console.WriteLine("3. 1 minute (Averaged)");
                 Console.WriteLine("4. 5 minute (Averaged)");
                 Console.WriteLine("5. Single poll");
@@ -203,9 +203,9 @@ namespace VSCaptureMP
 
             }
 
-            int[] setarray = { 1000, 12000, 60000, 300000, 0 }; //milliseconds
+            int[] setarray = { 1000, 10000, 60000, 300000, 0 }; //milliseconds
             short nIntervalset = 2;
-            int nInterval = 12000;
+            int nInterval = 10000;
             if (sIntervalset != "") nIntervalset = Convert.ToInt16(sIntervalset);
             if (nIntervalset > 0 && nIntervalset < 6) nInterval = setarray[nIntervalset - 1];
 
@@ -221,8 +221,9 @@ namespace VSCaptureMP
                 Console.WriteLine("1. Export as CSV files");
                 Console.WriteLine("2. Export as CSV files and JSON to URL");
                 Console.WriteLine("3. Export as MQTT to URL");
+                Console.WriteLine("4. Export as JSON file");
                 Console.WriteLine();
-                Console.Write("Choose data export option (1-3):");
+                Console.Write("Choose data export option (1-4):");
 
                 sDataExportset = Console.ReadLine();
 
@@ -409,7 +410,7 @@ namespace VSCaptureMP
             Console.WriteLine();
             Console.WriteLine("Press Escape button to Stop");
 
-            if (nDataExportset > 0 && nDataExportset < 4) _MPudpclient.m_dataexportset = nDataExportset;
+            if (nDataExportset > 0 && nDataExportset < 5) _MPudpclient.m_dataexportset = nDataExportset;
 
             if (nCSVset > 0 && nCSVset < 4) _MPudpclient.m_csvexportset = nCSVset;
 
@@ -567,7 +568,7 @@ namespace VSCaptureMP
                     Console.WriteLine();
                     Console.WriteLine("Numeric Data Transmission sets:");
                     Console.WriteLine("1. 1 second (Real time)");
-                    Console.WriteLine("2. 12 second (Averaged)");
+                    Console.WriteLine("2. 10 second (Averaged)");
                     Console.WriteLine("3. 1 minute (Averaged)");
                     Console.WriteLine("4. 5 minute (Averaged)");
                     Console.WriteLine("5. Single poll");
@@ -578,9 +579,9 @@ namespace VSCaptureMP
 
                 }
 
-                int[] setarray = { 1000, 12000, 60000, 300000, 0, 100 }; //milliseconds
+                int[] setarray = { 1000, 10000, 60000, 300000, 0, 100 }; //milliseconds
                 short nIntervalset = 2;
-                int nInterval = 12000;
+                int nInterval = 10000;
                 if (sIntervalset != "") nIntervalset = Convert.ToInt16(sIntervalset);
                 if (nIntervalset > 0 && nIntervalset < 6) nInterval = setarray[nIntervalset - 1];
 
@@ -596,8 +597,9 @@ namespace VSCaptureMP
                     Console.WriteLine("1. Export as CSV files");
                     Console.WriteLine("2. Export as CSV files and JSON to URL");
                     Console.WriteLine("3. Export as MQTT to URL");
+                    Console.WriteLine("4. Export as JSON file");
                     Console.WriteLine();
-                    Console.Write("Choose data export option (1-3):");
+                    Console.Write("Choose data export option (1-4):");
 
                     sDataExportset = Console.ReadLine();
 
@@ -697,7 +699,7 @@ namespace VSCaptureMP
                 _serialPort.m_MQTTuser = MQTTuser;
                 _serialPort.m_MQTTpassw = MQTTpassw;
 
-                if (nDataExportset > 0 && nDataExportset < 4) _serialPort.m_dataexportset = nDataExportset;
+                if (nDataExportset > 0 && nDataExportset < 5) _serialPort.m_dataexportset = nDataExportset;
 
                 /*Console.WriteLine();
                 Console.WriteLine("CSV Data Export Options:");

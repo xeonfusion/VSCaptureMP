@@ -33,6 +33,7 @@ using MQTTnet;
 using MQTTnet.Client;
 //using MQTTnet.Client.Options;
 using MQTTnet.Extensions.ManagedClient;
+using System.ComponentModel.DataAnnotations;
 //using MQTTnet.Client.Connecting;
 //using MQTTnet.Diagnostics;
 
@@ -676,11 +677,12 @@ namespace VSCaptureMP
 
                 if (m_dataexportset == 2) ExportNumValListToJSON("Numeric");
                 if (m_dataexportset == 3) ExportNumValListToMQTT("Numeric");
-                if (m_dataexportset != 3)
+                if (m_dataexportset == 4) ExportNumValListToJSONFile("Numeric");
+                if (m_dataexportset != 3 && m_dataexportset != 4)
                 {
                     ExportDataToCSV();
-                    ExportWaveToCSV();
                 }
+                ExportWaveToCSV();
                 //clear memory
                 m_WaveValResultList.RemoveRange(0, m_WaveValResultList.Count);
             }
@@ -1764,6 +1766,34 @@ namespace VSCaptureMP
 
                 Task.Run(() => PostJSONDataToServer(serializedJSON));
 
+            }
+
+            catch (Exception _Exception)
+            {
+                // Error. 
+                Console.WriteLine("Exception caught in process: {0}", _Exception.ToString());
+            }
+        }
+
+        public void ExportNumValListToJSONFile(string datatype)
+        {
+            string serializedJSON = JsonSerializer.Serialize(m_NumericValList, new JsonSerializerOptions { IncludeFields = true });
+
+            m_NumericValList.RemoveRange(0, m_NumericValList.Count);
+
+            string filename = String.Format("DataExportVSC.json");
+
+            string pathjson = Path.Combine(Directory.GetCurrentDirectory(), filename);
+
+            try
+            {
+                // Open file for reading. 
+                using (StreamWriter wrStream = new StreamWriter(pathjson, true, Encoding.UTF8))
+                {
+                    wrStream.Write(serializedJSON);
+
+                    wrStream.Close();
+                }
             }
 
             catch (Exception _Exception)
