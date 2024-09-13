@@ -230,8 +230,8 @@ namespace VSCaptureMP
             //MPPort.DtrEnable = true;
 
             // Set the read/write timeouts
-            MPPort.ReadTimeout = 500;
-            MPPort.WriteTimeout = 500;
+            MPPort.ReadTimeout = 600000;
+            MPPort.WriteTimeout = 600000;
             //not implemented in Mono but improves performance in dot net
             //if(!OSIsUnix()) MPPort.ReceivedBytesThreshold = 1024;
             MPPort.ReceivedBytesThreshold = 1024;
@@ -353,7 +353,7 @@ namespace VSCaptureMP
             if (m_storestart == false && m_storeend == true)
             {
                 int framelen = m_bList.Count();
-                if (framelen != 0)
+                if (framelen > 6)
                 {
                     byte[] bArray = new byte[framelen];
                     bArray = m_bList.ToArray();
@@ -1240,7 +1240,7 @@ namespace VSCaptureMP
         public void AddIDLabelToList()
         {
             IDLabel cIDLabel = new IDLabel();
-            
+
             cIDLabel.obpoll_handle = m_obpollhandle;
             cIDLabel.idlabelhandle = m_idlabelhandle;
             cIDLabel.idlabelstring = m_idlabelstring;
@@ -1397,9 +1397,9 @@ namespace VSCaptureMP
 
             if (physio_id == "NOM_METRIC_NOS" || physio_id == null)
             {
-               IDLabel cIDLabel = new IDLabel();
-               cIDLabel = m_IDLabelList.Find(x => x.obpoll_handle == m_obpollhandle);
-               if (cIDLabel != null) physio_id = cIDLabel.idlabelstring;
+                IDLabel cIDLabel = new IDLabel();
+                cIDLabel = m_IDLabelList.Find(x => x.obpoll_handle == m_obpollhandle);
+                if (cIDLabel != null) physio_id = cIDLabel.idlabelstring;
             }
 
             WaveValResult WaveVal = new WaveValResult();
@@ -1425,7 +1425,7 @@ namespace VSCaptureMP
 
             WaveVal.saCalibData = m_SaCalibDataSpecList.Find(x => x.obpoll_handle == m_obpollhandle); //optional
             WaveVal.ScaleRangeSpec16 = m_ScaleRangeSpecList.Find(x => x.obpoll_handle == m_obpollhandle); //mandatory
-           
+
             if (WaveVal.ScaleRangeSpec16 == null)
             {
                 WaveVal.ScaleRangeSpec16 = new ScaleRangeSpec16();
@@ -2175,7 +2175,8 @@ namespace VSCaptureMP
                     //await managedClient.StopAsync();
                 });
 
-                task.ContinueWith(antecedent => {
+                task.ContinueWith(antecedent =>
+                {
                     if (antecedent.Status == TaskStatus.RanToCompletion)
                     {
                         Task.Run(async () =>
@@ -2198,7 +2199,8 @@ namespace VSCaptureMP
         Task GetConnectedTask(ManagedMqttClient managedClient)
         {
             TaskCompletionSource<bool> connected = new TaskCompletionSource<bool>();
-            managedClient.ConnectedAsync += (MqttClientConnectedEventArgs arg) => {
+            managedClient.ConnectedAsync += (MqttClientConnectedEventArgs arg) =>
+            {
 
                 connected.SetResult(true);
                 //Console.WriteLine("MQTT Client connected");
